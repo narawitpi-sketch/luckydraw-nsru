@@ -12,6 +12,7 @@ import {
   query,
   getDocs,
   deleteDoc,
+  DocumentData,
 } from "firebase/firestore";
 import {
   Gift,
@@ -23,6 +24,8 @@ import {
   Sparkles,
   Settings,
 } from "lucide-react";
+import { User } from "firebase/auth";
+
 
 // --- Firebase Initialization ---
 const firebaseConfig = {
@@ -39,18 +42,27 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const appId = "new_year_raffle_2025";
 
+// --- Type Definitions ---
+interface Participant {
+  id: string;
+  name: string;
+  phone: string;
+  hasWon: boolean;
+  timestamp: string;
+}
+
 // --- Main Component ---
 
 // --- Component ---
 export default function NewYearRaffle() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [mode, setMode] = useState("register"); // register, projector, winner
-  const [participants, setParticipants] = useState([]);
-  const [myRegistration, setMyRegistration] = useState(null);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [myRegistration, setMyRegistration] = useState<Participant | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [slotName, setSlotName] = useState("พร้อมสุ่ม");
   const [showConfetti, setShowConfetti] = useState(false);
-  const [winnerData, setWinnerData] = useState(null);
+  const [winnerData, setWinnerData] = useState<Participant | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({ name: "", phone: "" });
@@ -355,8 +367,9 @@ export default function NewYearRaffle() {
           <Smartphone size={14} /> กลับไปหน้าลงทะเบียน
         </button>
       </div>
-    );
-  }
+      );
+    }
+    
 
   // 2. User Registration / Status View
   return (
