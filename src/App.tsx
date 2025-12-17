@@ -10,13 +10,15 @@ import { Gift, Smartphone, UserPlus, Trophy, PartyPopper, RefreshCw, Sparkles, S
 // --- Configuration ---
 // ⚠️ อย่าลืมแก้ตรงนี้เป็น Config ของคุณเองนะครับ ⚠️
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "SENDER_ID",
-  appId: "APP_ID"
-};
+    apiKey: "AIzaSyD8vFAEhmjSZlrVw8PgkKVvxqaQ1_7deWc",
+    authDomain: "luckydraw-nsru.firebaseapp.com",
+    projectId: "luckydraw-nsru",
+    storageBucket: "luckydraw-nsru.firebasestorage.app",
+    messagingSenderId: "113585240182",
+    appId: "1:113585240182:web:41f6b8b26f60bd177d4757",
+    measurementId: "G-LJF5RZRSEC"
+  };
+
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
