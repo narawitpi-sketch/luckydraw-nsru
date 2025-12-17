@@ -12,7 +12,6 @@ import {
   query,
   getDocs,
   deleteDoc,
-  DocumentData,
 } from "firebase/firestore";
 import {
   Gift,
@@ -24,8 +23,6 @@ import {
   Sparkles,
   Settings,
 } from "lucide-react";
-import { User } from "firebase/auth";
-
 
 // --- Firebase Initialization ---
 const firebaseConfig = {
@@ -42,27 +39,18 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const appId = "new_year_raffle_2025";
 
-// --- Type Definitions ---
-interface Participant {
-  id: string;
-  name: string;
-  phone: string;
-  hasWon: boolean;
-  timestamp: string;
-}
-
 // --- Main Component ---
 
 // --- Component ---
 export default function NewYearRaffle() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState(null);
   const [mode, setMode] = useState("register"); // register, projector, winner
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [myRegistration, setMyRegistration] = useState<Participant | null>(null);
+  const [participants, setParticipants] = useState([]);
+  const [myRegistration, setMyRegistration] = useState(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [slotName, setSlotName] = useState("พร้อมสุ่ม");
   const [showConfetti, setShowConfetti] = useState(false);
-  const [winnerData, setWinnerData] = useState<Participant | null>(null);
+  const [winnerData, setWinnerData] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({ name: "", phone: "" });
@@ -71,9 +59,6 @@ export default function NewYearRaffle() {
 
   // Admin/Settings
   const [showAdmin, setShowAdmin] = useState(false);
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [adminPassword, setAdminPassword] = useState("");
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
   // Refs
   const spinInterval = useRef(null);
@@ -153,18 +138,6 @@ export default function NewYearRaffle() {
   }, [user, formData.phone]);
 
   // --- Actions ---
-
-  const handleAdminLogin = () => {
-    // In a real app, use a more secure method!
-    if (adminPassword === "1234") {
-      setIsAdminAuthenticated(true);
-      setShowAdminLogin(false);
-      setError("");
-      setAdminPassword("");
-    } else {
-      setError("รหัสผ่านไม่ถูกต้อง");
-    }
-  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -367,9 +340,8 @@ export default function NewYearRaffle() {
           <Smartphone size={14} /> กลับไปหน้าลงทะเบียน
         </button>
       </div>
-      );
-    }
-    
+    );
+  }
 
   // 2. User Registration / Status View
   return (
@@ -379,13 +351,7 @@ export default function NewYearRaffle() {
         <div className="bg-red-600 p-6 text-center relative">
           <div className="absolute top-4 right-4">
             <button
-              onClick={() => {
-                setShowAdminLogin(!showAdminLogin);
-                if (isAdminAuthenticated) {
-                  setIsAdminAuthenticated(false); // Logout
-                  setAdminPassword("");
-                }
-              }}
+              onClick={() => setShowAdmin(!showAdmin)}
               className="text-red-300 hover:text-white"
             >
               <Settings size={18} />
@@ -399,7 +365,7 @@ export default function NewYearRaffle() {
         </div>
 
         {/* Admin Secret Panel */}
-        {isAdminAuthenticated && (
+        {showAdmin && (
           <div className="bg-gray-800 p-4 text-white text-sm">
             <h3 className="font-bold mb-2 border-b border-gray-600 pb-1">
               เมนูผู้ดูแล (Admin)
@@ -418,27 +384,6 @@ export default function NewYearRaffle() {
                 <RefreshCw size={14} /> ล้างข้อมูลทั้งหมด (Reset)
               </button>
             </div>
-          </div>
-        )}
-
-        {/* Admin Login Form */}
-        {showAdminLogin && !isAdminAuthenticated && (
-          <div className="p-4 bg-gray-100">
-            <input
-              type="password"
-              value={adminPassword}
-              onChange={(e) => setAdminPassword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-              placeholder="Enter Admin Password"
-            />
-            {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-            <button
-              onClick={handleAdminLogin}
-              className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded-lg mt-2"
-            >
-              Login
-            </button>
           </div>
         )}
 
