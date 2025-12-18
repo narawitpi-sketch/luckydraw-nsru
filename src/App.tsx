@@ -52,19 +52,17 @@ export default function NewYearRaffle() {
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Admin/Settings
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+  // Form State
+  const [formData, setFormData] = useState<FormDataState>({ name: '', phone: '' });
+  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const handleAdminAccess = () => {
-    if (isAdminAuthenticated) {
-        setIsAdminAuthenticated(false);
-        return;
-    }
+  const handleGoToProjector = () => {
     // ⚠️ รหัสผ่านสำหรับผู้ดูแลระบบเริ่มต้นคือ nsru@2026 ⚠️
     // ⚠️ แนะนำให้เปลี่ยนรหัสผ่านนี้เพื่อความปลอดภัย ⚠️
-    const pass = prompt("กรุณาใส่รหัสผ่านผู้ดูแลระบบ:");
+    const pass = prompt("กรุณาใส่รหัสผ่านเพื่อเข้าสู่โหมดผู้ดูแล:");
     if (pass === "nsru@2026") {
-        setIsAdminAuthenticated(true);
+        setMode('projector');
     } else if (pass) {
         alert("รหัสผ่านไม่ถูกต้อง!");
     }
@@ -279,27 +277,21 @@ export default function NewYearRaffle() {
              <div className="absolute bottom-20 right-20 text-8xl text-yellow-500 animate-bounce">🎁</div>
         </div>
 
-        <div className="absolute top-4 right-4">
-            <button onClick={handleAdminAccess} className="text-white/50 hover:text-white"><Settings size={22}/></button>
+        <div className="absolute top-4 right-4 bg-gray-800/90 backdrop-blur-sm p-4 text-white text-sm rounded-lg shadow-lg z-20 w-64">
+             <h3 className="font-bold mb-3 border-b border-gray-600 pb-2">เมนูผู้ดูแล</h3>
+             <div className="flex flex-col gap-2">
+                 <button onClick={resetWinners} className="bg-yellow-600 py-2 rounded hover:bg-yellow-500 w-full text-center flex items-center justify-center gap-2">
+                    <RefreshCw size={14}/> รีเซ็ตผู้ชนะ
+                 </button>
+                 <button onClick={resetData} className="bg-red-900 py-2 rounded hover:bg-red-800 w-full text-center flex items-center justify-center gap-2">
+                     <RefreshCw size={14}/> ล้างข้อมูลทั้งหมด
+                 </button>
+                 <div className="h-px bg-gray-600 my-2"></div>
+                 <button onClick={() => setMode('register')} className="bg-gray-600 py-2 rounded hover:bg-gray-500 w-full text-center flex items-center justify-center gap-1">
+                    <Smartphone size={14}/> กลับไปหน้าลงทะเบียน
+                </button>
+             </div>
         </div>
-
-        {isAdminAuthenticated && (
-            <div className="absolute top-16 right-4 bg-gray-800/90 backdrop-blur-sm p-4 text-white text-sm rounded-lg shadow-lg z-20 w-64">
-                 <h3 className="font-bold mb-3 border-b border-gray-600 pb-2">เมนูผู้ดูแล (Admin)</h3>
-                 <div className="flex flex-col gap-2">
-                     <button onClick={resetWinners} className="bg-yellow-600 py-2 rounded hover:bg-yellow-500 w-full text-center flex items-center justify-center gap-2">
-                        <RefreshCw size={14}/> รีเซ็ตผู้ชนะ
-                     </button>
-                     <button onClick={resetData} className="bg-red-900 py-2 rounded hover:bg-red-800 w-full text-center flex items-center justify-center gap-2">
-                         <RefreshCw size={14}/> ล้างข้อมูลทั้งหมด
-                     </button>
-                     <div className="h-px bg-gray-600 my-2"></div>
-                     <button onClick={() => setMode('register')} className="bg-gray-600 py-2 rounded hover:bg-gray-500 w-full text-center flex items-center justify-center gap-1">
-                        <Smartphone size={14}/> กลับไปหน้าลงทะเบียน
-                    </button>
-                 </div>
-            </div>
-        )}
 
         <div className="z-10 w-full max-w-4xl text-center">
           <h1 className="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-100 to-yellow-500 mb-8 drop-shadow-lg">
@@ -356,11 +348,9 @@ export default function NewYearRaffle() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
         
         <div className="bg-red-600 p-6 text-center relative">
-          <button onClick={() => setMode('projector')} className="w-full text-center focus:outline-none">
-            <Gift className="w-12 h-12 text-yellow-300 mx-auto mb-2" />
-            <h2 className="text-2xl font-bold text-white">ลงทะเบียนชิงโชคปีใหม่</h2>
-            <p className="text-red-100 text-sm">New Year Party 2026</p>
-          </button>
+          <Gift className="w-12 h-12 text-yellow-300 mx-auto mb-2" />
+          <h2 className="text-2xl font-bold text-white">ลงทะเบียนชิงโชคปีใหม่</h2>
+          <p className="text-red-100 text-sm">New Year Party 2026</p>
         </div>
 
         <div className="p-8">
@@ -447,6 +437,15 @@ export default function NewYearRaffle() {
           )}
         </div>
         
+        <div className="p-4 bg-slate-50">
+            <button 
+                onClick={handleGoToProjector}
+                className="w-full text-center py-2 text-sm text-slate-500 hover:bg-slate-200 hover:text-slate-700 rounded-md transition-colors"
+            >
+                สำหรับผู้ดูแล (Admin)
+            </button>
+        </div>
+
         <div className="bg-gray-50 p-4 text-center text-xs text-gray-400 border-t border-gray-100">
            New Year Lucky Draw NSRU System © 2026
         </div>
