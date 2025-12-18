@@ -52,15 +52,27 @@ export default function NewYearRaffle() {
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState<boolean>(false);
+  const [isPasswordPromptVisible, setIsPasswordPromptVisible] = useState<boolean>(false);
+  const [passwordInput, setPasswordInput] = useState<string>('');
+  const [passwordError, setPasswordError] = useState<string>('');
 
   const handleGoToProjector = () => {
+    setIsPasswordPromptVisible(true);
+    }
+  };
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     // ⚠️ รหัสผ่านสำหรับผู้ดูแลระบบเริ่มต้นคือ nsru@2026 ⚠️
     // ⚠️ แนะนำให้เปลี่ยนรหัสผ่านนี้เพื่อความปลอดภัย ⚠️
-    const pass = prompt("กรุณาใส่รหัสผ่านเพื่อเข้าสู่โหมดผู้ดูแล:");
-    if (pass === "nsru@2026") {
-        setMode('projector');
-    } else if (pass) {
-        alert("รหัสผ่านไม่ถูกต้อง!");
+    if (passwordInput === "nsru@2026") {
+      setMode('projector');
+      setIsPasswordPromptVisible(false);
+      setPasswordInput('');
+      setPasswordError('');
+    } else {
+      setPasswordError("รหัสผ่านไม่ถูกต้อง!");
+      setPasswordInput('');
     }
   };
 
@@ -357,8 +369,53 @@ export default function NewYearRaffle() {
 
   // 2. User Registration / Status View
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 font-sans text-slate-800">
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 font-sans text-slate-800 relative">
       
+      {isPasswordPromptVisible && (
+        <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
+            <h3 className="text-xl font-bold text-slate-800 mb-4">เข้าสู่โหมดผู้ดูแล</h3>
+            <form onSubmit={handlePasswordSubmit}>
+              <p className="text-sm text-slate-600 mb-4">กรุณาใส่รหัสผ่านเพื่อดำเนินการต่อ</p>
+              
+              {passwordError && (
+                <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm mb-4 border border-red-200">
+                  {passwordError}
+                </div>
+              )}
+
+              <input
+                type="password"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-ny-gold focus:border-transparent outline-none transition"
+                placeholder="******"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                autoFocus
+              />
+              <div className="flex gap-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPasswordPromptVisible(false);
+                    setPasswordInput('');
+                    setPasswordError('');
+                  }}
+                  className="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 rounded-lg transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="w-full bg-ny-blue hover:bg-blue-900 text-white font-bold py-2 rounded-lg transition-colors"
+                >
+                  ยืนยัน
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
         
         <div className="bg-ny-blue p-6 text-center relative">
