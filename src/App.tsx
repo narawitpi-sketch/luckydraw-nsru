@@ -51,6 +51,7 @@ export default function NewYearRaffle() {
   const [formData, setFormData] = useState<FormDataState>({ name: '', phone: '' });
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState<boolean>(false);
 
   const handleGoToProjector = () => {
     // ⚠️ รหัสผ่านสำหรับผู้ดูแลระบบเริ่มต้นคือ nsru@2026 ⚠️
@@ -272,23 +273,34 @@ export default function NewYearRaffle() {
              <div className="absolute bottom-20 right-20 text-8xl text-yellow-500 animate-bounce">🎁</div>
         </div>
 
-        <div className="absolute top-4 right-4 bg-gray-800/90 backdrop-blur-sm p-4 text-white text-sm rounded-lg shadow-lg z-20 w-64">
-             <h3 className="font-bold mb-3 border-b border-gray-600 pb-2 flex items-center gap-2">
-                <Settings size={16} />
-                <span>เมนูผู้ดูแล</span>
-             </h3>
-             <div className="flex flex-col gap-2">
-                 <button onClick={resetWinners} className="bg-yellow-600 py-2 rounded hover:bg-yellow-500 w-full text-center flex items-center justify-center gap-2">
-                    <RefreshCw size={14}/> รีเซ็ตผู้ชนะ
-                 </button>
-                 <button onClick={resetData} className="bg-red-900 py-2 rounded hover:bg-red-800 w-full text-center flex items-center justify-center gap-2">
-                     <RefreshCw size={14}/> ล้างข้อมูลทั้งหมด
-                 </button>
-                 <div className="h-px bg-gray-600 my-2"></div>
-                 <button onClick={() => setMode('register')} className="bg-gray-600 py-2 rounded hover:bg-gray-500 w-full text-center flex items-center justify-center gap-1">
-                    <Smartphone size={14}/> กลับไปหน้าลงทะเบียน
-                </button>
-             </div>
+        <div className="absolute top-4 right-4 z-20">
+            <button 
+                onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)} 
+                className="bg-gray-800/90 backdrop-blur-sm p-3 text-white rounded-full shadow-lg hover:bg-gray-700 transition-colors"
+                aria-label="เมนูผู้ดูแล"
+            >
+                <Settings size={20} />
+            </button>
+            
+            {isAdminMenuOpen && (
+                <div className="absolute top-14 right-0 bg-gray-800/90 backdrop-blur-sm p-4 text-white text-sm rounded-lg shadow-lg w-64">
+                     <h3 className="font-bold mb-3 border-b border-gray-600 pb-2">
+                        เมนูผู้ดูแล
+                     </h3>
+                     <div className="flex flex-col gap-2">
+                         <button onClick={resetWinners} className="bg-yellow-600 py-2 rounded hover:bg-yellow-500 w-full text-center flex items-center justify-center gap-2 transition-colors">
+                            <RefreshCw size={14}/> รีเซ็ตผู้ชนะ
+                         </button>
+                         <button onClick={resetData} className="bg-red-900 py-2 rounded hover:bg-red-800 w-full text-center flex items-center justify-center gap-2 transition-colors">
+                             <RefreshCw size={14}/> ล้างข้อมูลทั้งหมด
+                         </button>
+                         <div className="h-px bg-gray-600 my-2"></div>
+                         <button onClick={() => setMode('register')} className="bg-gray-600 py-2 rounded hover:bg-gray-500 w-full text-center flex items-center justify-center gap-1 transition-colors">
+                            <Smartphone size={14}/> กลับไปหน้าลงทะเบียน
+                        </button>
+                     </div>
+                </div>
+            )}
         </div>
 
         <div className="z-10 w-full max-w-4xl text-center">
