@@ -345,10 +345,10 @@ export default function NewYearRaffle() {
                <div className="absolute top-0 w-full h-8 bg-gradient-to-b from-black to-transparent opacity-30 z-10 pointer-events-none"></div>
                <div className="absolute bottom-0 w-full h-8 bg-gradient-to-t from-black to-transparent opacity-30 z-10 pointer-events-none"></div>
                 
-               {reelItems.length > 0 ? (
+               {(isSpinning || winnerData) && reelItems.length > 0 ? (
                     <div style={reelStyle}>
                         {reelItems.map((p, i) => (
-                            <div key={i} className="h-48 md:h-64 flex items-center justify-center text-4xl md:text-7xl font-bold text-gray-800 tracking-wider text-center px-4">
+                            <div key={`${i}-${p.id}`} className="h-48 md:h-64 flex items-center justify-center text-4xl md:text-7xl font-bold text-gray-800 tracking-wider text-center px-4">
                                 {p.name}
                             </div>
                         ))}
