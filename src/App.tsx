@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, type User } from 'firebase/auth';
 import { 
@@ -39,9 +39,8 @@ interface FormDataState {
 }
 
 // --- Animation Constants ---
-
-const ITEM_HEIGHT = 80; // ความสูงของแต่ละชื่อ (pixel)
-const VISIBLE_ITEMS = 5; // จำนวนชื่อที่แสดงในช่องหน้าต่าง
+const ITEM_HEIGHT = 120; // ความสูงของแต่ละชื่อ (pixel)
+const VISIBLE_ITEMS = 1; // แสดงแค่ 1 ชื่อ (Single Slot)
 const CONTAINER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS; // ความสูงรวมของช่องหน้าต่าง
 
 // --- Helper Functions ---
@@ -178,12 +177,9 @@ export default function NewYearRaffle() {
     setWinner(selectedWinner);
     
     // 2. สร้าง "Reel" หรือสายพานรายชื่อยาวๆ
-    // เทคนิค: เอา list มาต่อกันหลายๆ รอบ + ผู้ชนะ + ต่อท้ายอีกนิดหน่อยเพื่อให้หยุดกลางจอพอดี
-    
     let tempReel: Participant[] = [];
     
-    // 2.1 ช่วงหมุนเล่น (Filler) - ยิ่งเยอะยิ่งหมุนนาน
-    // ถ้าคนน้อย (เช่น < 10) ให้วนเยอะรอบหน่อย (เช่น 30 รอบ) ถ้าคนเยอะ (เช่น 100) วนน้อยรอบ (เช่น 5 รอบ)
+    // 2.1 ช่วงหมุนเล่น (Filler)
     const loops = eligibleParticipants.length < 10 ? 30 : 5;
     
     for (let i = 0; i < loops; i++) {
@@ -191,11 +187,10 @@ export default function NewYearRaffle() {
     }
 
     // 2.2 ใส่ผู้ชนะลงไปที่ตำแหน่ง "เกือบสุดท้าย"
-    // ต้องแน่ใจว่าผู้ชนะไม่ได้อยู่ท้ายสุด เพื่อให้มีพื้นที่เหลือด้านล่าง (padding bottom)
     const winnerIndex = tempReel.length; // ตำแหน่งที่จะใส่ผู้ชนะ
     tempReel.push(selectedWinner);
 
-    // 2.3 ใส่ตัวหลอกต่อท้ายอีกสัก 3-4 คน เพื่อให้ไม่เห็นขอบขาวด้านล่างตอนหยุด
+    // 2.3 ใส่ตัวหลอกต่อท้ายอีกสัก 4 คน
     const paddingCount = 4; 
     const paddingItems = shuffleArray(eligibleParticipants).slice(0, paddingCount);
     tempReel = [...tempReel, ...paddingItems];
@@ -203,16 +198,14 @@ export default function NewYearRaffle() {
     setReelNames(tempReel);
 
     // 3. คำนวณระยะทางที่จะเลื่อน (Pixels)
-    // สูตร: -(ตำแหน่งผู้ชนะ * ความสูง) + (ครึ่งหนึ่งของความสูงกล่อง) - (ครึ่งหนึ่งของความสูงไอเท็ม)
-    // เพื่อให้ item ของผู้ชนะมาหยุดตรงกลางเป๊ะๆ
-    const targetY = -(winnerIndex * ITEM_HEIGHT) + (CONTAINER_HEIGHT / 2) - (ITEM_HEIGHT / 2);
+    const targetY = -(winnerIndex * ITEM_HEIGHT);
 
     // 4. เริ่ม Animation
     animationControls.start({
       y: targetY,
       transition: {
         duration: 6, // หมุนนาน 6 วินาที
-        ease: [0.15, 0.85, 0.35, 1], // Cubic Bezier เพื่อให้เริ่มเร็วและหยุดนิ่มๆ (เหมือน slot)
+        ease: [0.15, 0.85, 0.35, 1],
       }
     }).then(() => {
         handleAnimationComplete(selectedWinner);
@@ -293,7 +286,7 @@ export default function NewYearRaffle() {
             🎉 จับรางวัลปีใหม่ 2026 🎉
           </h1>
 
-          {/* --- The Vertical Slot Machine --- */}
+          {/* --- The Vertical Slot Machine (Single View) --- */}
           <div className="relative mb-10 w-full max-w-md">
             
             {/* Machine Frame */}
@@ -301,17 +294,9 @@ export default function NewYearRaffle() {
                 
                 {/* Viewport Window */}
                 <div 
-                    className="w-full bg-white rounded-xl shadow-inner overflow-hidden relative"
+                    className="w-full bg-white rounded-xl shadow-inner overflow-hidden relative border-4 border-red-500/80"
                     style={{ height: CONTAINER_HEIGHT }}
                 >
-                    {/* Center Highlight Bar (The red line/box) */}
-                    <div className="absolute top-1/2 left-0 -translate-y-1/2 w-full h-[80px] bg-red-500/10 border-y-2 border-red-500/50 z-20 pointer-events-none shadow-[0_0_15px_rgba(239,68,68,0.3)]"></div>
-                    
-                    {/* Top Fade Gradient */}
-                    <div className="absolute top-0 left-0 w-full h-16 bg-gradient-to-b from-gray-200 to-transparent z-10 pointer-events-none"></div>
-                    {/* Bottom Fade Gradient */}
-                    <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-gray-200 to-transparent z-10 pointer-events-none"></div>
-
                     {/* The Moving Reel */}
                     <motion.div
                         className="flex flex-col items-center w-full"
@@ -319,12 +304,8 @@ export default function NewYearRaffle() {
                     >
                         {/* Initial State (Placeholder) */}
                         {!isSpinning && reelNames.length === 0 && (
-                            <div className="flex flex-col items-center justify-center h-full w-full py-20 text-gray-400">
-                                <div style={{ height: ITEM_HEIGHT }} className="flex items-center justify-center text-3xl font-bold opacity-50">?</div>
-                                <div style={{ height: ITEM_HEIGHT }} className="flex items-center justify-center text-3xl font-bold opacity-50">?</div>
-                                <div style={{ height: ITEM_HEIGHT }} className="flex items-center justify-center text-4xl font-bold text-gray-800">พร้อมสุ่ม</div>
-                                <div style={{ height: ITEM_HEIGHT }} className="flex items-center justify-center text-3xl font-bold opacity-50">?</div>
-                                <div style={{ height: ITEM_HEIGHT }} className="flex items-center justify-center text-3xl font-bold opacity-50">?</div>
+                            <div className="flex items-center justify-center h-full w-full text-gray-400">
+                                <div style={{ height: ITEM_HEIGHT }} className="flex items-center justify-center text-5xl font-bold text-gray-800 w-full">พร้อมสุ่ม</div>
                             </div>
                         )}
 
@@ -333,11 +314,9 @@ export default function NewYearRaffle() {
                             <div 
                                 key={`${p.id}-${i}`} 
                                 style={{ height: ITEM_HEIGHT }}
-                                className={`w-full flex items-center justify-center text-center font-bold text-3xl px-4
-                                    ${winner && p.id === winner.id && i === reelNames.length - 1 - 4 ? 'text-red-600 scale-110' : 'text-gray-700'}
-                                `}
+                                className="w-full flex items-center justify-center text-center font-bold text-5xl px-4 text-gray-800"
                             >
-                                <span className="truncate w-full">{p.name}</span>
+                                <span className="truncate w-full leading-tight">{p.name}</span>
                             </div>
                         ))}
                     </motion.div>
