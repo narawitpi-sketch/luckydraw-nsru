@@ -40,7 +40,7 @@ interface FormDataState {
 }
 
 // --- Animation Constants ---
-const ITEM_WIDTH = 250; 
+const ITEM_HEIGHT = 192; /* 12rem, same as h-48 */ 
 const NUM_ROTATIONS = 4; 
 
 // --- Helper Hooks & Functions ---
@@ -211,13 +211,13 @@ export default function NewYearRaffle() {
     const preWinnerReelSize = finalReel.length - finalRotation.length;
     const winnerPosition = preWinnerReelSize + winnerIndexInFinalRotation;
     
-    const viewportWidth = viewportRef.current?.offsetWidth ?? 0;
-    const centeringAdjustment = (viewportWidth / 2) - (ITEM_WIDTH / 2);
+    const viewportHeight = viewportRef.current?.offsetHeight ?? 0;
+    const centeringAdjustment = (viewportHeight / 2) - (ITEM_HEIGHT / 2);
     
-    const totalDistance = (winnerPosition * ITEM_WIDTH) - centeringAdjustment;
+    const totalDistance = (winnerPosition * ITEM_HEIGHT) - centeringAdjustment;
 
     animationControls.start({
-      x: -totalDistance,
+      y: -totalDistance,
       transition: {
         type: 'spring',
         damping: 18,
