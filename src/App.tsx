@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, type User } from 'firebase/auth';
 import { 
@@ -70,9 +70,8 @@ export default function NewYearRaffle() {
     }
   };
 
-
   // Refs
-  // const spinInterval = useRef<NodeJS.Timeout | null>(null);
+  const spinInterval = useRef<NodeJS.Timeout | null>(null);
 
   // 1. Auth & Initial Setup
   useEffect(() => {
@@ -175,50 +174,35 @@ export default function NewYearRaffle() {
 
     setIsSpinning(true);
     setWinnerData(null);
-    setShowConfetti(false);
 
-    // 1. Pick a winner beforehand
-    const winner = eligible[Math.floor(Math.random() * eligible.length)];
-    
-    // 2. Animation logic with slowdown
-    const totalSpins = 30; // How many name changes
-    let currentSpin = 0;
+    let counter = 0;
+    // Clear interval เก่าถ้ามี
+    if (spinInterval.current) clearInterval(spinInterval.current);
 
-    const spin = () => {
-        currentSpin++;
-        
-        // Pick a random name to display, but not the winner unless it's the end
-        let nameToShow;
-        if (currentSpin === totalSpins) {
-            nameToShow = winner.name;
-        } else {
-            const displayPool = eligible.filter(p => p.id !== winner.id);
-            nameToShow = displayPool.length > 0 
-                ? displayPool[Math.floor(Math.random() * displayPool.length)].name
-                : winner.name; // Fallback if only one eligible person
-        }
-        setSlotName(nameToShow);
+    spinInterval.current = setInterval(() => {
+      const randomName = eligible[Math.floor(Math.random() * eligible.length)].name;
+      setSlotName(randomName);
+      counter++;
+    }, 100);
 
-        if (currentSpin < totalSpins) {
-            // As we get closer to the end, the timeout duration increases, slowing it down.
-            const baseSpeed = 50; // ms
-            const slowdownFactor = Math.pow(currentSpin / totalSpins, 2);
-            const timeout = baseSpeed + (slowdownFactor * 150); // Adjust 150 to control slowdown rate
-            setTimeout(spin, timeout);
-        } else {
-            // 3. Animation finished, set final winner
-            setSlotName(winner.name);
-            setWinnerData(winner);
-            setIsSpinning(false);
-            setShowConfetti(true);
+    setTimeout(() => {
+      if (spinInterval.current) {
+        clearInterval(spinInterval.current);
+        spinInterval.current = null;
+      }
+      
+      const winnerIndex = Math.floor(Math.random() * eligible.length);
+      const winner = eligible[winnerIndex];
+      
+      setSlotName(winner.name);
+      setWinnerData(winner);
+      setIsSpinning(false);
+      setShowConfetti(true);
 
-            // 4. Update winner in Firestore
-            const winnerRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', winner.id);
-            updateDoc(winnerRef, { hasWon: true });
-        }
-    };
+      const winnerRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', winner.id);
+      updateDoc(winnerRef, { hasWon: true });
 
-    spin();
+    }, 3000);
   };
 
   const resetWinners = async () => {
@@ -245,7 +229,7 @@ export default function NewYearRaffle() {
 
   const resetData = async () => {
     const pass = prompt("การกระทำนี้จะลบข้อมูลทั้งหมดและไม่สามารถย้อนกลับได้! \nกรุณาใส่รหัสผ่านผู้ดูแลระบบเพื่อยืนยัน:");
-    if (pass !== "nsru@2025") {
+    if (pass !== "nsru@2026") {
         if (pass !== null) { // Don't show alert if user cancelled the prompt
             alert("รหัสผ่านไม่ถูกต้อง! การลบข้อมูลถูกยกเลิก");
         }
@@ -305,7 +289,7 @@ export default function NewYearRaffle() {
 
         <div className="z-10 w-full max-w-4xl text-center">
           <h1 className="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-100 to-yellow-500 mb-8 drop-shadow-lg">
-            🎉 จับรางวัลปีใหม่ 2025 🎉
+            🎉 จับรางวัลปีใหม่ 2026 🎉
           </h1>
 
           <div className="bg-gradient-to-br from-yellow-600 to-yellow-800 p-4 rounded-3xl shadow-2xl border-4 border-yellow-400 mb-10 mx-auto max-w-2xl transform transition-transform hover:scale-105">
@@ -360,7 +344,7 @@ export default function NewYearRaffle() {
         <div className="bg-red-600 p-6 text-center relative">
           <Gift className="w-12 h-12 text-yellow-300 mx-auto mb-2" />
           <h2 className="text-2xl font-bold text-white">ลงทะเบียนชิงโชคปีใหม่</h2>
-          <p className="text-red-100 text-sm">New Year Party 2025</p>
+          <p className="text-red-100 text-sm">New Year Party 2026</p>
         </div>
 
         <div className="p-8">
