@@ -58,7 +58,6 @@ export default function NewYearRaffle() {
 
   const handleGoToProjector = () => {
     setIsPasswordPromptVisible(true);
-    }
   };
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
