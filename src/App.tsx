@@ -47,6 +47,10 @@ export default function NewYearRaffle() {
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
   const [winnerData, setWinnerData] = useState<Participant | null>(null);
 
+  // Roulette animation state
+  const [reelItems, setReelItems] = useState<Participant[]>([]);
+  const [reelStyle, setReelStyle] = useState<React.CSSProperties>({});
+
   // Form State
   const [formData, setFormData] = useState<FormDataState>({ name: '', phone: '' });
   const [error, setError] = useState<string>('');
@@ -171,7 +175,7 @@ export default function NewYearRaffle() {
 
   const startSpin = () => {
     const eligible = participants.filter(p => !p.hasWon);
-    if (eligible.length === 0) {
+    if (eligible.length < 1) {
       alert("ไม่มีผู้เข้าร่วมที่ยังไม่ได้รับรางวัลเหลือแล้ว!");
       return;
     }
@@ -179,75 +183,60 @@ export default function NewYearRaffle() {
     setIsSpinning(true);
     setWinnerData(null);
     setShowConfetti(false);
+    setSlotName(''); // Clear the previous winner name
 
-    // 1. Pick a winner beforehand
+    // 1. Pick a winner and create the animation reel
     const winner = eligible[Math.floor(Math.random() * eligible.length)];
-    
-    // 2. Create a realistic animation reel
     let animationReel = [];
-    
-    // The pool of names to display during the spin
-    // If there's only one person, they are the winner, but we can still show their name "spinning"
-    const displayPool = eligible.length > 1 ? eligible.filter(p => p.id !== winner.id) : [winner];
+    const displayPool = eligible.length > 0 ? eligible : [winner];
+    const desiredReelLength = 50; // More names for a better visual spin
 
-    // For a good visual effect, create a reel of about 30-40 names
-    const desiredReelLength = 40;
-    if (displayPool.length > 0) {
-        while (animationReel.length < desiredReelLength) {
-            // Shuffle and add all names from the display pool
-            const shuffled = [...displayPool].sort(() => 0.5 - Math.random());
-            animationReel.push(...shuffled);
-        }
+    while (animationReel.length < desiredReelLength) {
+        const shuffled = [...displayPool].sort(() => 0.5 - Math.random());
+        animationReel.push(...shuffled);
     }
-    // Ensure the reel isn't too long, and trim it to the desired length.
-    animationReel = animationReel.slice(0, desiredReelLength);
+    animationReel = animationReel.slice(0, desiredReelLength - 1);
+    animationReel.push(winner); // Winner is always the last item
+    
+    setReelItems(animationReel);
 
-    // IMPORTANT: Add the winner at the very end
-    animationReel.push(winner);
+    // 2. Start the animation using CSS transitions
+    // This is a bit of a hack to reset the animation
+    setTimeout(() => {
+      // Position reel at the start without animation
+      setReelStyle({
+        transition: 'none',
+        transform: 'translateY(0)',
+      });
 
-    // 3. Animation logic with slowdown
-    let spinIndex = 0;
-    const totalSpins = animationReel.length;
+      // After a short delay, apply the animation to spin to the winner
+      setTimeout(() => {
+        const itemHeight = window.innerWidth > 768 ? 256 : 192; // h-64 or h-48 in pixels
+        const winnerIndex = animationReel.length - 1;
+        // We need to center the winner item. The container is flex `items-center`, so translateY(0) centers the first item.
+        // To center the last item, we need to move the entire reel up by `winnerIndex * itemHeight`.
+        const finalY = -(winnerIndex * itemHeight);
 
-    const spin = () => {
-        // Handle case where reel might be empty if there are no eligible participants (though checked before)
-        if(animationReel[spinIndex]) {
-            setSlotName(animationReel[spinIndex].name);
-        }
-        
-        spinIndex++;
+        setReelStyle({
+          transition: 'transform 7s cubic-bezier(.17,.88,.24,1)', // A nice ease-out curve
+          transform: `translateY(${finalY}px)`,
+        });
+      }, 100);
+    }, 100);
 
-        if (spinIndex < totalSpins) {
-            const progress = spinIndex / totalSpins;
-            
-            // Start fast, then slow down dramatically towards the end
-            let timeout;
-            if (progress < 0.5) {
-                timeout = 50; // Fast at the beginning
-            } else if (progress < 0.8) {
-                timeout = 100;
-            } else if (progress < 0.9) {
-                timeout = 200;
-            } else {
-                timeout = 300; // Very slow for the last few names
-            }
-            
-            setTimeout(spin, timeout);
-        } else {
-            // 4. Animation finished, display final winner
-            setSlotName(winner.name);
-            setWinnerData(winner);
-            setIsSpinning(false);
-            setShowConfetti(true);
 
-            // 5. Update winner in Firestore
-            const winnerRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', winner.id);
-            updateDoc(winnerRef, { hasWon: true });
-        }
-    };
+    // 3. After animation is complete, set final state
+    const animationDuration = 7000; // Must match transition duration
+    setTimeout(() => {
+      setSlotName(winner.name);
+      setWinnerData(winner);
+      setIsSpinning(false);
+      setShowConfetti(true);
 
-    // Start the first spin immediately
-    spin();
+      // 4. Update winner in Firestore
+      const winnerRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', winner.id);
+      updateDoc(winnerRef, { hasWon: true });
+    }, animationDuration + 500); // Add a small buffer
   };
 
   const resetWinners = async () => {
@@ -266,6 +255,8 @@ export default function NewYearRaffle() {
         setShowConfetti(false);
         setSlotName("พร้อมสุ่ม");
         setIsAdminMenuOpen(false);
+        setReelItems([]);
+        setReelStyle({});
 
         alert("รีเซ็ตสถานะผู้ชนะสำเร็จ!");
 
@@ -351,12 +342,22 @@ export default function NewYearRaffle() {
 
           <div className="bg-gradient-to-br from-gray-700 to-gray-900 p-4 rounded-3xl shadow-2xl border-4 border-ny-gold mb-10 mx-auto max-w-2xl transform transition-transform hover:scale-105">
             <div className="bg-white rounded-xl overflow-hidden h-48 md:h-64 flex items-center justify-center border-b-8 border-gray-200 shadow-inner relative">
-               <div className="absolute top-0 w-full h-8 bg-gradient-to-b from-black to-transparent opacity-30 z-10"></div>
-               <div className="absolute bottom-0 w-full h-8 bg-gradient-to-t from-black to-transparent opacity-30 z-10"></div>
-
-               <div className={`text-4xl md:text-7xl font-bold text-gray-800 tracking-wider transition-all duration-100 ${isSpinning ? 'blur-sm scale-110' : ''}`}>
-                 {slotName}
-               </div>
+               <div className="absolute top-0 w-full h-8 bg-gradient-to-b from-black to-transparent opacity-30 z-10 pointer-events-none"></div>
+               <div className="absolute bottom-0 w-full h-8 bg-gradient-to-t from-black to-transparent opacity-30 z-10 pointer-events-none"></div>
+                
+               {reelItems.length > 0 ? (
+                    <div style={reelStyle}>
+                        {reelItems.map((p, i) => (
+                            <div key={i} className="h-48 md:h-64 flex items-center justify-center text-4xl md:text-7xl font-bold text-gray-800 tracking-wider text-center px-4">
+                                {p.name}
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-4xl md:text-7xl font-bold text-gray-800 tracking-wider">
+                        {slotName}
+                    </div>
+                )}
             </div>
             <div className="mt-4 flex justify-between items-center px-4">
                  <div className="text-gray-300 font-semibold">ผู้เข้าร่วม: {participants.length} คน</div>
@@ -378,7 +379,7 @@ export default function NewYearRaffle() {
              </button>
           </div>
           
-          {showConfetti && winnerData && !isSpinning && (
+          {showConfetti && winnerData && (
              <div className="mt-8 animate-bounce">
                 <div className="text-2xl text-ny-gold mb-2">✨ ขอแสดงความยินดีกับ ✨</div>
                 <div className="text-5xl font-bold text-black bg-ny-gold/90 px-8 py-4 rounded-xl inline-block backdrop-blur-sm border-2 border-yellow-300">
