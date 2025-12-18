@@ -178,18 +178,20 @@ export default function NewYearRaffle() {
     // 1. Pick a winner and create the list of names for animation
     const winner = eligible[Math.floor(Math.random() * eligible.length)];
     let nameReel = [];
+    // If there's only one person, the display pool is just them
     const displayPool = eligible.length > 1 ? eligible.filter(p => p.id !== winner.id) : [winner];
     
     // Create a long list of names for a good flicker effect
     if (displayPool.length > 0) {
-        for (let i = 0; i < 50; i++) {
+        // Increase reel length for a longer spin
+        for (let i = 0; i < 100; i++) {
             nameReel.push(displayPool[Math.floor(Math.random() * displayPool.length)].name);
         }
     }
     nameReel.push(winner.name); // Ensure winner is the last name
 
     // 2. JS-based animation using requestAnimationFrame
-    const duration = 7000; // ms
+    const duration = 8000; // ms - Increased duration
     let startTime: number | null = null;
     let lastSlotName = "";
 
@@ -197,13 +199,14 @@ export default function NewYearRaffle() {
       if (!startTime) startTime = timestamp;
       const elapsed = timestamp - startTime;
       
-      // Easing function: easeOutCubic
+      // Easing function: easeOutQuint for a more dramatic slowdown
       const progress = Math.min(elapsed / duration, 1);
-      const easeOutProgress = 1 - Math.pow(1 - progress, 3);
+      const easeOutProgress = 1 - Math.pow(1 - progress, 5);
       
       const index = Math.floor(easeOutProgress * (nameReel.length - 1));
       const currentName = nameReel[index];
 
+      // Only update state if the name has changed to avoid unnecessary re-renders
       if (currentName !== lastSlotName) {
         setSlotName(currentName);
         lastSlotName = currentName;
