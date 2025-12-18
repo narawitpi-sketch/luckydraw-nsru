@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, type User } from 'firebase/auth';
 import { 
@@ -173,35 +173,50 @@ export default function NewYearRaffle() {
 
     setIsSpinning(true);
     setWinnerData(null);
+    setShowConfetti(false);
 
-    let counter = 0;
-    // Clear interval เก่าถ้ามี
-    if (spinInterval.current) clearInterval(spinInterval.current);
+    // 1. Pick a winner beforehand
+    const winner = eligible[Math.floor(Math.random() * eligible.length)];
+    
+    // 2. Animation logic with slowdown
+    const totalSpins = 30; // How many name changes
+    let currentSpin = 0;
 
-    spinInterval.current = setInterval(() => {
-      const randomName = eligible[Math.floor(Math.random() * eligible.length)].name;
-      setSlotName(randomName);
-      counter++;
-    }, 100);
+    const spin = () => {
+        currentSpin++;
+        
+        // Pick a random name to display, but not the winner unless it's the end
+        let nameToShow;
+        if (currentSpin === totalSpins) {
+            nameToShow = winner.name;
+        } else {
+            const displayPool = eligible.filter(p => p.id !== winner.id);
+            nameToShow = displayPool.length > 0 
+                ? displayPool[Math.floor(Math.random() * displayPool.length)].name
+                : winner.name; // Fallback if only one eligible person
+        }
+        setSlotName(nameToShow);
 
-    setTimeout(() => {
-      if (spinInterval.current) {
-        clearInterval(spinInterval.current);
-        spinInterval.current = null;
-      }
-      
-      const winnerIndex = Math.floor(Math.random() * eligible.length);
-      const winner = eligible[winnerIndex];
-      
-      setSlotName(winner.name);
-      setWinnerData(winner);
-      setIsSpinning(false);
-      setShowConfetti(true);
+        if (currentSpin < totalSpins) {
+            // As we get closer to the end, the timeout duration increases, slowing it down.
+            const baseSpeed = 50; // ms
+            const slowdownFactor = Math.pow(currentSpin / totalSpins, 2);
+            const timeout = baseSpeed + (slowdownFactor * 150); // Adjust 150 to control slowdown rate
+            setTimeout(spin, timeout);
+        } else {
+            // 3. Animation finished, set final winner
+            setSlotName(winner.name);
+            setWinnerData(winner);
+            setIsSpinning(false);
+            setShowConfetti(true);
 
-      const winnerRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', winner.id);
-      updateDoc(winnerRef, { hasWon: true });
+            // 4. Update winner in Firestore
+            const winnerRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', winner.id);
+            updateDoc(winnerRef, { hasWon: true });
+        }
+    };
 
-    }, 3000);
+    spin();
   };
 
   const resetWinners = async () => {
