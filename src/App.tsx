@@ -71,7 +71,6 @@ export default function NewYearRaffle() {
   };
 
   // Refs
-  const spinInterval = useRef<NodeJS.Timeout | null>(null);
 
   // 1. Auth & Initial Setup
   useEffect(() => {
