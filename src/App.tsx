@@ -187,7 +187,6 @@ export default function NewYearRaffle() {
     setReelNames(finalReel);
 
     // 3. Calculate distance
-    const totalListWidth = finalReel.length * ITEM_WIDTH;
     const rotationsDistance = (NUM_ROTATIONS * eligibleParticipants.length) * ITEM_WIDTH;
     const winnerDistance = winnerIndexInShuffled * ITEM_WIDTH;
     
