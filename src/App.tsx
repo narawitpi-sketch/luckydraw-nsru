@@ -55,7 +55,22 @@ export default function NewYearRaffle() {
   const [loading, setLoading] = useState<boolean>(false);
 
   // Admin/Settings
-  const [showAdmin, setShowAdmin] = useState<boolean>(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+
+  const handleAdminAccess = () => {
+    if (isAdminAuthenticated) {
+        setIsAdminAuthenticated(false);
+        return;
+    }
+    // ⚠️ รหัสผ่านสำหรับผู้ดูแลระบบเริ่มต้นคือ nsru@2025 ⚠️
+    // ⚠️ แนะนำให้เปลี่ยนรหัสผ่านนี้เพื่อความปลอดภัย ⚠️
+    const pass = prompt("กรุณาใส่รหัสผ่านผู้ดูแลระบบ:");
+    if (pass === "nsru@2025") {
+        setIsAdminAuthenticated(true);
+    } else if (pass) {
+        alert("รหัสผ่านไม่ถูกต้อง!");
+    }
+  };
 
   // Refs
   // ใช้ number | null สำหรับเก็บ ID ของ setInterval ใน browser env
@@ -283,14 +298,14 @@ export default function NewYearRaffle() {
         
         <div className="bg-red-600 p-6 text-center relative">
           <div className="absolute top-4 right-4">
-             <button onClick={() => setShowAdmin(!showAdmin)} className="text-red-300 hover:text-white"><Settings size={18}/></button>
+             <button onClick={handleAdminAccess} className="text-red-300 hover:text-white"><Settings size={18}/></button>
           </div>
           <Gift className="w-12 h-12 text-yellow-300 mx-auto mb-2" />
           <h2 className="text-2xl font-bold text-white">ลงทะเบียนชิงโชคปีใหม่</h2>
           <p className="text-red-100 text-sm">New Year Party 2025</p>
         </div>
 
-        {showAdmin && (
+        {isAdminAuthenticated && (
              <div className="bg-gray-800 p-4 text-white text-sm">
                  <h3 className="font-bold mb-2 border-b border-gray-600 pb-1">เมนูผู้ดูแล (Admin)</h3>
                  <div className="flex flex-col gap-2">
