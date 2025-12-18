@@ -5,8 +5,10 @@ import {
   getFirestore, collection, doc, setDoc, getDoc, 
   onSnapshot, updateDoc, getDocs, deleteDoc
 } from 'firebase/firestore';
-import { Gift, Smartphone, UserPlus, Trophy, PartyPopper, RefreshCw, Sparkles, Settings, Star } from 'lucide-react';
+import { Gift, Smartphone, UserPlus, Trophy, PartyPopper, RefreshCw, Sparkles as IconSparkles, Settings, Star } from 'lucide-react';
 import { motion, useAnimation } from 'framer-motion';
+import ReactConfetti from 'react-confetti';
+
 
 const firebaseConfig = {
     apiKey: "AIzaSyD8vFAEhmjSZlrVw8PgkKVvxqaQ1_7deWc",
@@ -38,16 +40,46 @@ interface FormDataState {
 }
 
 // --- Animation Constants ---
-const ITEM_WIDTH = 250; // Width of each name card in pixels
-const NUM_ROTATIONS = 4; // Number of times the list will "rotate"
+const ITEM_WIDTH = 250; 
+const NUM_ROTATIONS = 4; 
 
-// --- Helper Functions ---
+// --- Helper Hooks & Functions ---
+const useWindowSize = () => {
+  const [size, setSize] = useState([0, 0]);
+  useEffect(() => {
+    const updateSize = () => setSize([window.innerWidth, window.innerHeight]);
+    window.addEventListener('resize', updateSize);
+    updateSize();
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+  return { width: size[0], height: size[1] };
+};
+
 const shuffleArray = <T,>(array: T[]): T[] => {
   return array.slice().sort(() => Math.random() - 0.5);
 };
 
+// --- Sub-components ---
+const Sparkles = () => {
+    return (
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        {[...Array(30)].map((_, i) => {
+          const style = {
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            animationDelay: `${Math.random() * 5}s`,
+            animationDuration: `${2 + Math.random() * 3}s`,
+          };
+          return (
+            <div key={i} className="absolute w-1 h-1 bg-ny-gold rounded-full animate-pulse" style={style} />
+          );
+        })}
+      </div>
+    );
+};
 
-// --- Component ---
+
+// --- Main Component ---
 export default function NewYearRaffle() {
   const [user, setUser] = useState<User | null>(null);
   const [mode, setMode] = useState<'register' | 'projector'>('register');
@@ -60,6 +92,7 @@ export default function NewYearRaffle() {
   
   const animationControls = useAnimation();
   const viewportRef = useRef<HTMLDivElement>(null);
+  const { width, height } = useWindowSize();
 
   // Form State
   const [formData, setFormData] = useState<FormDataState>({ name: '', phone: '' });
@@ -72,9 +105,7 @@ export default function NewYearRaffle() {
 
   const eligibleParticipants = useMemo(() => participants.filter(p => !p.hasWon), [participants]);
 
-  const handleGoToProjector = () => {
-    setIsPasswordPromptVisible(true);
-  };
+  const handleGoToProjector = () => setIsPasswordPromptVisible(true);
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,29 +120,24 @@ export default function NewYearRaffle() {
     }
   };
 
-  // 1. Auth & Initial Setup
   useEffect(() => {
     signInAnonymously(auth).catch(error => console.error("Auth Error", error));
-    const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
+    const unsubscribe = onAuthStateChanged(auth, u => setUser(u));
     const savedPhone = localStorage.getItem('raffle_phone');
-    if (savedPhone) {
-        setFormData(prev => ({ ...prev, phone: savedPhone }));
-    }
+    if (savedPhone) setFormData(prev => ({ ...prev, phone: savedPhone }));
     return () => unsubscribe();
   }, []);
 
-  // 2. Data Syncing (Participants)
   useEffect(() => {
     if (!user) return;
     const q = collection(db, 'artifacts', appId, 'public', 'data', 'participants');
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Participant));
+    const unsubscribe = onSnapshot(q, snapshot => {
+      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Participant));
       setParticipants(data);
     });
     return () => unsubscribe();
   }, [user]);
 
-  // 3. Check My Status
   useEffect(() => {
     if (!user || !formData.phone) return;
     const myDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', formData.phone);
@@ -121,15 +147,11 @@ export default function NewYearRaffle() {
         setMyRegistration(data);
         localStorage.setItem('raffle_phone', formData.phone);
         localStorage.setItem('raffle_name', data.name);
-        if (data.hasWon) {
-           setShowConfetti(true);
-        }
+        if (data.hasWon) setShowConfetti(true);
       }
     });
     return () => unsubscribe();
   }, [user, formData.phone]);
-
-  // --- Actions ---
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,42 +192,39 @@ export default function NewYearRaffle() {
     setShowConfetti(false);
     setWinner(null);
 
-    // 1. Pre-calculate the winner
     const selectedWinner = eligibleParticipants[Math.floor(Math.random() * eligibleParticipants.length)];
     setWinner(selectedWinner);
     
-    // 2. Create the "Infinite Loop" reel
-    const shuffledList = shuffleArray(eligibleParticipants);
-    const winnerIndexInShuffled = shuffledList.findIndex(p => p.id === selectedWinner.id);
+    // Create a shuffled list for the final "rotation" to land on
+    const finalRotation = shuffleArray(eligibleParticipants);
+    const winnerIndexInFinalRotation = finalRotation.findIndex(p => p.id === selectedWinner.id);
 
+    // Create the full reel for the animation
     let finalReel: Participant[] = [];
     for (let i = 0; i < NUM_ROTATIONS; i++) {
         finalReel.push(...shuffleArray(eligibleParticipants));
     }
-    // Add the shuffled list that contains the winner at a known location
-    finalReel.push(...shuffledList);
+    finalReel.push(...finalRotation);
     setReelNames(finalReel);
 
-    // 3. Calculate distance
-    const rotationsDistance = (NUM_ROTATIONS * eligibleParticipants.length) * ITEM_WIDTH;
-    const winnerDistance = winnerIndexInShuffled * ITEM_WIDTH;
+    // Calculate the distance to the winner
+    const preWinnerReelSize = finalReel.length - finalRotation.length;
+    const winnerPosition = preWinnerReelSize + winnerIndexInFinalRotation;
     
-    // We need to adjust the final position to be in the center of the viewport
     const viewportWidth = viewportRef.current?.offsetWidth ?? 0;
     const centeringAdjustment = (viewportWidth / 2) - (ITEM_WIDTH / 2);
     
-    const totalDistance = rotationsDistance + winnerDistance - centeringAdjustment;
+    const totalDistance = (winnerPosition * ITEM_WIDTH) - centeringAdjustment;
 
-    // 4. Start the animation
     animationControls.start({
       x: -totalDistance,
       transition: {
         type: 'spring',
-        damping: 20,      // Lower gives more bounce
-        stiffness: 40,    // Lower is slower
-        mass: 2,          // Higher mass feels "heavier"
-        bounce: 0.1,      // Controls the bounciness at the end
-        duration: 8       // Approximate duration
+        damping: 18,
+        stiffness: 50,
+        mass: 1.5,
+        bounce: 0.1,
+        duration: 9
       }
     });
   };
@@ -222,12 +241,12 @@ export default function NewYearRaffle() {
   const resetWinners = async () => {
     if (!window.confirm("คุณแน่ใจหรือไม่ที่จะรีเซ็ตสถานะผู้ชนะทั้งหมด?")) return;
     try {
-        const updates = eligibleParticipants.map(p => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'participants', p.id), { hasWon: false }));
+        const updates = participants.filter(p => p.hasWon).map(p => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'participants', p.id), { hasWon: false }));
         await Promise.all(updates);
         setWinner(null);
         setShowConfetti(false);
         setIsAdminMenuOpen(false);
-        animationControls.set({ x: 0 }); // Reset position
+        animationControls.set({ x: 0 });
         alert("รีเซ็ตสถานะผู้ชนะสำเร็จ!");
     } catch (e: unknown) {
         if (e instanceof Error) alert("รีเซ็ตไม่สำเร็จ: " + e.message);
@@ -240,7 +259,6 @@ export default function NewYearRaffle() {
         if (pass !== null) alert("รหัสผ่านไม่ถูกต้อง! การลบข้อมูลถูกยกเลิก");
         return;
     }
-    
     try {
         const querySnapshot = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'participants'));
         await Promise.all(querySnapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
@@ -250,18 +268,12 @@ export default function NewYearRaffle() {
     }
   };
 
-  // --- Views ---
-
   if (mode === 'projector') {
     return (
       <div className="min-h-screen bg-ny-blue text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
-        {/* Ornaments */}
-        <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
-             <div className="absolute top-10 left-10 text-6xl text-ny-gold animate-pulse">✨</div>
-             <div className="absolute bottom-20 right-20 text-8xl text-ny-gold animate-bounce">🎁</div>
-        </div>
-
-        {/* Admin Menu */}
+        <Sparkles />
+        {showConfetti && <ReactConfetti width={width} height={height} numberOfPieces={300} recycle={false} />}
+        
         <div className="absolute top-4 right-4 z-30">
             <button onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)} className="bg-gray-800/90 backdrop-blur-sm p-3 text-white rounded-full shadow-lg hover:bg-gray-700 transition-colors" aria-label="เมนูผู้ดูแล">
                 <Settings size={20} />
@@ -284,23 +296,13 @@ export default function NewYearRaffle() {
             🎉 จับรางวัลปีใหม่ 2026 🎉
           </h1>
 
-          {/* --- The Spinner --- */}
           <div className="bg-gradient-to-br from-gray-700 to-gray-900 p-4 rounded-3xl shadow-2xl border-4 border-ny-gold mb-10 w-full max-w-4xl relative">
-            {/* The viewport for the reel */}
             <div ref={viewportRef} className="h-48 w-full rounded-xl bg-white/90 shadow-inner overflow-hidden relative">
+              <div className="absolute left-1/2 top-0 -translate-x-1/2 w-1.5 h-full bg-red-500/80 z-20 shadow-lg shadow-red-500/50 rounded-full"></div>
               
-              {/* Center Marker */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-full bg-red-500 z-20 opacity-50"></div>
-              <div className="absolute top-1/2 -translate-y-1/2 w-full h-2/3 bg-red-500/5 z-20 border-y-2 border-red-500/30"></div>
-              
-              {/* The Reel */}
-              <motion.div
-                className="h-full flex items-center"
-                animate={animationControls}
-                onAnimationComplete={handleAnimationComplete}
-              >
+              <motion.div className="h-full flex items-center" animate={animationControls} onAnimationComplete={handleAnimationComplete}>
                 {reelNames.map((p, i) => (
-                  <div key={i} className="h-full flex-shrink-0 flex items-center justify-center text-center text-gray-800 font-bold text-4xl" style={{ width: ITEM_WIDTH }}>
+                  <div key={`${i}-${p.id}`} className="h-full flex-shrink-0 flex items-center justify-center text-center text-gray-800 font-bold text-4xl" style={{ width: ITEM_WIDTH }}>
                     <span className="truncate px-4">{p.name}</span>
                   </div>
                 ))}
@@ -311,7 +313,6 @@ export default function NewYearRaffle() {
                  <div className="text-gray-300 font-semibold">ผู้โชคดีแล้ว: {participants.filter(p=>p.hasWon).length} คน</div>
             </div>
           </div>
-
 
           <div className="flex gap-4 justify-center">
              <button onClick={startSpin} disabled={isSpinning || eligibleParticipants.length === 0} className={`px-12 py-6 rounded-full text-2xl font-bold shadow-lg transition-all transform hover:-translate-y-1 active:translate-y-1 ${isSpinning ? 'bg-gray-500 cursor-not-allowed text-gray-300' : 'bg-gradient-to-b from-ny-gold to-yellow-600 text-black border-b-4 border-yellow-800 hover:brightness-110'}`}>
@@ -338,18 +339,18 @@ export default function NewYearRaffle() {
     <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 font-sans text-slate-800 relative">
       {isPasswordPromptVisible && (
         <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
-            <h3 className="text-xl font-bold text-slate-800 mb-4">เข้าสู่โหมดผู้ดูแล</h3>
-            <form onSubmit={handlePasswordSubmit}>
-              <p className="text-sm text-slate-600 mb-4">กรุณาใส่รหัสผ่านเพื่อดำเนินการต่อ</p>
-              {passwordError && <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm mb-4 border border-red-200">{passwordError}</div>}
-              <input type="password" className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-ny-gold focus:border-transparent outline-none transition" placeholder="******" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} autoFocus />
-              <div className="flex gap-4 mt-6">
-                <button type="button" onClick={() => { setIsPasswordPromptVisible(false); setPasswordInput(''); setPasswordError(''); }} className="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 rounded-lg transition-colors">ยกเลิก</button>
-                <button type="submit" className="w-full bg-ny-blue hover:bg-blue-900 text-white font-bold py-2 rounded-lg transition-colors">ยืนยัน</button>
-              </div>
-            </form>
-          </div>
+            <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
+                <h3 className="text-xl font-bold text-slate-800 mb-4">เข้าสู่โหมดผู้ดูแล</h3>
+                <form onSubmit={handlePasswordSubmit}>
+                    <p className="text-sm text-slate-600 mb-4">กรุณาใส่รหัสผ่านเพื่อดำเนินการต่อ</p>
+                    {passwordError && <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm mb-4 border border-red-200">{passwordError}</div>}
+                    <input type="password" className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-ny-gold focus:border-transparent outline-none transition" placeholder="******" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} autoFocus />
+                    <div className="flex gap-4 mt-6">
+                        <button type="button" onClick={() => { setIsPasswordPromptVisible(false); setPasswordInput(''); setPasswordError(''); }} className="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 rounded-lg transition-colors">ยกเลิก</button>
+                        <button type="submit" className="w-full bg-ny-blue hover:bg-blue-900 text-white font-bold py-2 rounded-lg transition-colors">ยืนยัน</button>
+                    </div>
+                </form>
+            </div>
         </div>
       )}
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
@@ -371,7 +372,7 @@ export default function NewYearRaffle() {
                    </div>
                ) : (
                    <div className="space-y-4">
-                       <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto"><Sparkles className="text-ny-blue w-10 h-10" /></div>
+                       <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto"><IconSparkles className="text-ny-blue w-10 h-10" /></div>
                        <h3 className="text-xl font-semibold text-ny-blue">ลงทะเบียนสำเร็จ!</h3>
                        <div className="bg-slate-100 p-4 rounded-lg text-left">
                            <p className="text-xs text-gray-500 mb-1">ชื่อที่ลงทะเบียน</p>
