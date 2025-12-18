@@ -62,10 +62,10 @@ export default function NewYearRaffle() {
         setIsAdminAuthenticated(false);
         return;
     }
-    // ⚠️ รหัสผ่านสำหรับผู้ดูแลระบบเริ่มต้นคือ nsru@2025 ⚠️
+    // ⚠️ รหัสผ่านสำหรับผู้ดูแลระบบเริ่มต้นคือ nsru@2026 ⚠️
     // ⚠️ แนะนำให้เปลี่ยนรหัสผ่านนี้เพื่อความปลอดภัย ⚠️
     const pass = prompt("กรุณาใส่รหัสผ่านผู้ดูแลระบบ:");
-    if (pass === "nsru@2025") {
+    if (pass === "nsru@2026") {
         setIsAdminAuthenticated(true);
     } else if (pass) {
         alert("รหัสผ่านไม่ถูกต้อง!");
@@ -208,6 +208,28 @@ export default function NewYearRaffle() {
     }, 3000);
   };
 
+  const resetWinners = async () => {
+    if (!window.confirm("คุณแน่ใจหรือไม่ที่จะรีเซ็ตสถานะผู้ชนะทั้งหมด?")) return;
+
+    try {
+        const querySnapshot = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'participants'));
+        
+        const updates = querySnapshot.docs.map(docSnap => {
+            return updateDoc(docSnap.ref, { hasWon: false });
+        });
+
+        await Promise.all(updates);
+
+        alert("รีเซ็ตสถานะผู้ชนะสำเร็จ!");
+        window.location.reload();
+
+    } catch (e: unknown) {
+        if (e instanceof Error) {
+            alert("รีเซ็ตไม่สำเร็จ: " + e.message);
+        }
+    }
+  };
+
   const resetData = async () => {
     if(!window.confirm("คุณแน่ใจหรือไม่ที่จะลบข้อมูลทั้งหมด? การกระทำนี้ไม่สามารถย้อนกลับได้")) return;
     
@@ -240,7 +262,7 @@ export default function NewYearRaffle() {
 
         <div className="z-10 w-full max-w-4xl text-center">
           <h1 className="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-100 to-yellow-500 mb-8 drop-shadow-lg">
-            🎉 จับรางวัลปีใหม่ 2025 🎉
+            🎉 จับรางวัลปีใหม่ 2026 🎉
           </h1>
 
           <div className="bg-gradient-to-br from-yellow-600 to-yellow-800 p-4 rounded-3xl shadow-2xl border-4 border-yellow-400 mb-10 mx-auto max-w-2xl transform transition-transform hover:scale-105">
@@ -302,7 +324,7 @@ export default function NewYearRaffle() {
           </div>
           <Gift className="w-12 h-12 text-yellow-300 mx-auto mb-2" />
           <h2 className="text-2xl font-bold text-white">ลงทะเบียนชิงโชคปีใหม่</h2>
-          <p className="text-red-100 text-sm">New Year Party 2025</p>
+          <p className="text-red-100 text-sm">New Year Party 2026</p>
         </div>
 
         {isAdminAuthenticated && (
@@ -312,8 +334,11 @@ export default function NewYearRaffle() {
                      <button onClick={() => setMode('projector')} className="bg-blue-600 py-2 rounded hover:bg-blue-500 w-full text-center">
                          📺 เปิดหน้าจอ Projector (สุ่มรางวัล)
                      </button>
+                     <button onClick={resetWinners} className="bg-yellow-600 py-2 rounded hover:bg-yellow-500 w-full text-center flex items-center justify-center gap-2">
+                        <RefreshCw size={14}/> รีเซ็ตผู้ชนะ (เก็บรายชื่อไว้)
+                     </button>
                      <button onClick={resetData} className="bg-red-900 py-2 rounded hover:bg-red-800 w-full text-center flex items-center justify-center gap-2">
-                         <RefreshCw size={14}/> ล้างข้อมูลทั้งหมด (Reset)
+                         <RefreshCw size={14}/> ล้างข้อมูลผู้ลงทะเบียนทั้งหมด
                      </button>
                  </div>
              </div>
@@ -404,7 +429,7 @@ export default function NewYearRaffle() {
         </div>
         
         <div className="bg-gray-50 p-4 text-center text-xs text-gray-400 border-t border-gray-100">
-           New Year Lucky Draw System
+           New Year Lucky Draw NSRU System © 2026
         </div>
       </div>
     </div>
