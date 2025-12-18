@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, type User } from 'firebase/auth';
 import { 
@@ -186,7 +186,6 @@ export default function NewYearRaffle() {
 
     const spin = () => {
         currentSpin++;
-        const isFinishing = currentSpin > totalSpins - 5;
         
         // Pick a random name to display, but not the winner unless it's the end
         let nameToShow;
