@@ -47,10 +47,6 @@ export default function NewYearRaffle() {
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
   const [winnerData, setWinnerData] = useState<Participant | null>(null);
 
-  // Roulette animation state
-  const [reelItems, setReelItems] = useState<Participant[]>([]);
-  const [reelStyle, setReelStyle] = useState<React.CSSProperties>({});
-
   // Form State
   const [formData, setFormData] = useState<FormDataState>({ name: '', phone: '' });
   const [error, setError] = useState<string>('');
@@ -66,8 +62,6 @@ export default function NewYearRaffle() {
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // ⚠️ รหัสผ่านสำหรับผู้ดูแลระบบเริ่มต้นคือ nsru@2026 ⚠️
-    // ⚠️ แนะนำให้เปลี่ยนรหัสผ่านนี้เพื่อความปลอดภัย ⚠️
     if (passwordInput === "nsru@2026") {
       setMode('projector');
       setIsPasswordPromptVisible(false);
@@ -78,8 +72,6 @@ export default function NewYearRaffle() {
       setPasswordInput('');
     }
   };
-
-  // Refs
 
   // 1. Auth & Initial Setup
   useEffect(() => {
@@ -160,7 +152,6 @@ export default function NewYearRaffle() {
            hasWon: false,
            timestamp: new Date().toISOString()
          };
-         // ใน Firestore doc id คือ phone อยู่แล้ว
          await setDoc(docRef, newParticipant);
       }
       
@@ -183,83 +174,71 @@ export default function NewYearRaffle() {
     setIsSpinning(true);
     setWinnerData(null);
     setShowConfetti(false);
-    setSlotName(''); // Clear the previous winner name
 
-    // 1. Pick a winner and create the animation reel
+    // 1. Pick a winner and create the list of names for animation
     const winner = eligible[Math.floor(Math.random() * eligible.length)];
-    let animationReel = [];
-    const displayPool = eligible.length > 0 ? eligible : [winner];
-    const desiredReelLength = 50; // More names for a better visual spin
-
-    while (animationReel.length < desiredReelLength) {
-        const shuffled = [...displayPool].sort(() => 0.5 - Math.random());
-        animationReel.push(...shuffled);
-    }
-    animationReel = animationReel.slice(0, desiredReelLength - 1);
-    animationReel.push(winner); // Winner is always the last item
+    let nameReel = [];
+    const displayPool = eligible.length > 1 ? eligible.filter(p => p.id !== winner.id) : [winner];
     
-    setReelItems(animationReel);
+    // Create a long list of names for a good flicker effect
+    if (displayPool.length > 0) {
+        for (let i = 0; i < 50; i++) {
+            nameReel.push(displayPool[Math.floor(Math.random() * displayPool.length)].name);
+        }
+    }
+    nameReel.push(winner.name); // Ensure winner is the last name
 
-    // 2. Start the animation using CSS transitions
-    // This is a bit of a hack to reset the animation
-    setTimeout(() => {
-      // Position reel at the start without animation
-      setReelStyle({
-        transition: 'none',
-        transform: 'translateY(0)',
-      });
+    // 2. JS-based animation using requestAnimationFrame
+    const duration = 7000; // ms
+    let startTime: number | null = null;
+    let lastSlotName = "";
 
-      // After a short delay, apply the animation to spin to the winner
-      setTimeout(() => {
-        const itemHeight = window.innerWidth > 768 ? 256 : 192; // h-64 or h-48 in pixels
-        const winnerIndex = animationReel.length - 1;
-        // We need to center the winner item. The container is flex `items-center`, so translateY(0) centers the first item.
-        // To center the last item, we need to move the entire reel up by `winnerIndex * itemHeight`.
-        const finalY = -(winnerIndex * itemHeight);
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      
+      // Easing function: easeOutCubic
+      const progress = Math.min(elapsed / duration, 1);
+      const easeOutProgress = 1 - Math.pow(1 - progress, 3);
+      
+      const index = Math.floor(easeOutProgress * (nameReel.length - 1));
+      const currentName = nameReel[index];
 
-        setReelStyle({
-          transition: 'transform 7s cubic-bezier(.17,.88,.24,1)', // A nice ease-out curve
-          transform: `translateY(${finalY}px)`,
-        });
-      }, 100);
-    }, 100);
+      if (currentName !== lastSlotName) {
+        setSlotName(currentName);
+        lastSlotName = currentName;
+      }
 
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // 3. Animation finished
+        setSlotName(winner.name);
+        setWinnerData(winner);
+        setIsSpinning(false);
+        setShowConfetti(true);
 
-    // 3. After animation is complete, set final state
-    const animationDuration = 7000; // Must match transition duration
-    setTimeout(() => {
-      setSlotName(winner.name);
-      setWinnerData(winner);
-      setIsSpinning(false);
-      setShowConfetti(true);
+        // 4. Update winner in Firestore
+        const winnerRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', winner.id);
+        updateDoc(winnerRef, { hasWon: true });
+      }
+    };
 
-      // 4. Update winner in Firestore
-      const winnerRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', winner.id);
-      updateDoc(winnerRef, { hasWon: true });
-    }, animationDuration + 500); // Add a small buffer
+    requestAnimationFrame(animate);
   };
 
   const resetWinners = async () => {
     if (!window.confirm("คุณแน่ใจหรือไม่ที่จะรีเซ็ตสถานะผู้ชนะทั้งหมด?")) return;
-
     try {
         const querySnapshot = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'participants'));
-        
-        const updates = querySnapshot.docs.map(docSnap => {
-            return updateDoc(docSnap.ref, { hasWon: false });
-        });
-
+        const updates = querySnapshot.docs.map(docSnap => updateDoc(docSnap.ref, { hasWon: false }));
         await Promise.all(updates);
 
         setWinnerData(null);
         setShowConfetti(false);
         setSlotName("พร้อมสุ่ม");
         setIsAdminMenuOpen(false);
-        setReelItems([]);
-        setReelStyle({});
-
         alert("รีเซ็ตสถานะผู้ชนะสำเร็จ!");
-
     } catch (e: unknown) {
         if (e instanceof Error) {
             alert("รีเซ็ตไม่สำเร็จ: " + e.message);
@@ -270,7 +249,7 @@ export default function NewYearRaffle() {
   const resetData = async () => {
     const pass = prompt("การกระทำนี้จะลบข้อมูลทั้งหมดและไม่สามารถย้อนกลับได้! \nกรุณาใส่รหัสผ่านผู้ดูแลระบบเพื่อยืนยัน:");
     if (pass !== "nsru@2026") {
-        if (pass !== null) { // Don't show alert if user cancelled the prompt
+        if (pass !== null) {
             alert("รหัสผ่านไม่ถูกต้อง! การลบข้อมูลถูกยกเลิก");
         }
         return;
@@ -279,7 +258,6 @@ export default function NewYearRaffle() {
     try {
         const querySnapshot = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'participants'));
         const deletePromises = querySnapshot.docs.map((docSnap) => deleteDoc(docSnap.ref));
-        
         await Promise.all(deletePromises);
 
         setParticipants([]);
@@ -344,20 +322,10 @@ export default function NewYearRaffle() {
             <div className="bg-white rounded-xl overflow-hidden h-48 md:h-64 flex items-center justify-center border-b-8 border-gray-200 shadow-inner relative">
                <div className="absolute top-0 w-full h-8 bg-gradient-to-b from-black to-transparent opacity-30 z-10 pointer-events-none"></div>
                <div className="absolute bottom-0 w-full h-8 bg-gradient-to-t from-black to-transparent opacity-30 z-10 pointer-events-none"></div>
-                
-               {(isSpinning || winnerData) && reelItems.length > 0 ? (
-                    <div style={reelStyle}>
-                        {reelItems.map((p, i) => (
-                            <div key={`${i}-${p.id}`} className="h-48 md:h-64 flex items-center justify-center text-4xl md:text-7xl font-bold text-gray-800 tracking-wider text-center px-4">
-                                {p.name}
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-4xl md:text-7xl font-bold text-gray-800 tracking-wider">
-                        {slotName}
-                    </div>
-                )}
+               
+               <div className={`text-4xl md:text-7xl font-bold text-gray-800 tracking-wider transition-all duration-100 text-center px-4 ${isSpinning ? 'blur-sm' : ''}`}>
+                 {slotName}
+               </div>
             </div>
             <div className="mt-4 flex justify-between items-center px-4">
                  <div className="text-gray-300 font-semibold">ผู้เข้าร่วม: {participants.length} คน</div>
