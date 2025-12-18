@@ -39,9 +39,10 @@ interface FormDataState {
 }
 
 // --- Animation Constants ---
-const ITEM_HEIGHT = 120; // ความสูงของแต่ละชื่อ (pixel)
-const VISIBLE_ITEMS = 1; // แสดงแค่ 1 ชื่อ (Single Slot)
-const CONTAINER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS; // ความสูงรวมของช่องหน้าต่าง
+// เพิ่มความสูงเป็น 150px เพื่อให้สระภาษาไทย (ใ, ไ, โ, ์) ไม่โดนตัด
+const ITEM_HEIGHT = 150; 
+const VISIBLE_ITEMS = 1; 
+const CONTAINER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS; 
 
 // --- Helper Functions ---
 const shuffleArray = <T,>(array: T[]): T[] => {
@@ -305,7 +306,7 @@ export default function NewYearRaffle() {
                         {/* Initial State (Placeholder) */}
                         {!isSpinning && reelNames.length === 0 && (
                             <div className="flex items-center justify-center h-full w-full text-gray-400">
-                                <div style={{ height: ITEM_HEIGHT }} className="flex items-center justify-center text-5xl font-bold text-gray-800 w-full">พร้อมสุ่ม</div>
+                                <div style={{ height: ITEM_HEIGHT }} className="flex items-center justify-center text-5xl font-bold text-gray-800 w-full py-4">พร้อมสุ่ม</div>
                             </div>
                         )}
 
@@ -314,9 +315,10 @@ export default function NewYearRaffle() {
                             <div 
                                 key={`${p.id}-${i}`} 
                                 style={{ height: ITEM_HEIGHT }}
+                                // เพิ่ม py-4 และเปลี่ยน leading เป็น normal เพื่อป้องกันสระลอยตัด
                                 className="w-full flex items-center justify-center text-center font-bold text-5xl px-4 text-gray-800"
                             >
-                                <span className="truncate w-full leading-tight">{p.name}</span>
+                                <span className="truncate w-full leading-normal py-4">{p.name}</span>
                             </div>
                         ))}
                     </motion.div>
