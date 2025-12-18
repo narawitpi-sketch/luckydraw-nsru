@@ -1,15 +1,14 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, type User } from 'firebase/auth';
 import { 
   getFirestore, collection, doc, setDoc, getDoc, 
   onSnapshot, updateDoc, getDocs, deleteDoc
 } from 'firebase/firestore';
-import { Gift, Smartphone, UserPlus, Trophy, PartyPopper, RefreshCw, Sparkles as IconSparkles, Settings, Star } from 'lucide-react';
+import { Gift, Smartphone, UserPlus, Trophy, PartyPopper, RefreshCw, Sparkles, Settings, Star } from 'lucide-react';
 import { motion, useAnimation } from 'framer-motion';
-import ReactConfetti from 'react-confetti';
 
-
+// --- Firebase Configuration ---
 const firebaseConfig = {
     apiKey: "AIzaSyD8vFAEhmjSZlrVw8PgkKVvxqaQ1_7deWc",
     authDomain: "luckydraw-nsru.firebaseapp.com",
@@ -18,7 +17,7 @@ const firebaseConfig = {
     messagingSenderId: "113585240182",
     appId: "1:113585240182:web:41f6b8b26f60bd177d4757",
     measurementId: "G-LJF5RZRSEC"
-  };
+};
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -40,46 +39,17 @@ interface FormDataState {
 }
 
 // --- Animation Constants ---
-const ITEM_HEIGHT = 192; /* 12rem, same as h-48 */ 
-const NUM_ROTATIONS = 4; 
 
-// --- Helper Hooks & Functions ---
-const useWindowSize = () => {
-  const [size, setSize] = useState([0, 0]);
-  useEffect(() => {
-    const updateSize = () => setSize([window.innerWidth, window.innerHeight]);
-    window.addEventListener('resize', updateSize);
-    updateSize();
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
-  return { width: size[0], height: size[1] };
-};
+const ITEM_HEIGHT = 80; // ความสูงของแต่ละชื่อ (pixel)
+const VISIBLE_ITEMS = 5; // จำนวนชื่อที่แสดงในช่องหน้าต่าง
+const CONTAINER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS; // ความสูงรวมของช่องหน้าต่าง
 
+// --- Helper Functions ---
 const shuffleArray = <T,>(array: T[]): T[] => {
   return array.slice().sort(() => Math.random() - 0.5);
 };
 
-// --- Sub-components ---
-const Sparkles = () => {
-    return (
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        {[...Array(30)].map((_, i) => {
-          const style = {
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            animationDelay: `${Math.random() * 5}s`,
-            animationDuration: `${2 + Math.random() * 3}s`,
-          };
-          return (
-            <div key={i} className="absolute w-1 h-1 bg-ny-gold rounded-full animate-pulse" style={style} />
-          );
-        })}
-      </div>
-    );
-};
-
-
-// --- Main Component ---
+// --- Component ---
 export default function NewYearRaffle() {
   const [user, setUser] = useState<User | null>(null);
   const [mode, setMode] = useState<'register' | 'projector'>('register');
@@ -91,8 +61,6 @@ export default function NewYearRaffle() {
   const [reelNames, setReelNames] = useState<Participant[]>([]);
   
   const animationControls = useAnimation();
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const { width, height } = useWindowSize();
 
   // Form State
   const [formData, setFormData] = useState<FormDataState>({ name: '', phone: '' });
@@ -103,9 +71,12 @@ export default function NewYearRaffle() {
   const [passwordInput, setPasswordInput] = useState<string>('');
   const [passwordError, setPasswordError] = useState<string>('');
 
+  // Filter out winners
   const eligibleParticipants = useMemo(() => participants.filter(p => !p.hasWon), [participants]);
 
-  const handleGoToProjector = () => setIsPasswordPromptVisible(true);
+  const handleGoToProjector = () => {
+    setIsPasswordPromptVisible(true);
+  };
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,24 +91,29 @@ export default function NewYearRaffle() {
     }
   };
 
+  // 1. Auth & Initial Setup
   useEffect(() => {
     signInAnonymously(auth).catch(error => console.error("Auth Error", error));
-    const unsubscribe = onAuthStateChanged(auth, u => setUser(u));
+    const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
     const savedPhone = localStorage.getItem('raffle_phone');
-    if (savedPhone) setFormData(prev => ({ ...prev, phone: savedPhone }));
+    if (savedPhone) {
+        setFormData(prev => ({ ...prev, phone: savedPhone }));
+    }
     return () => unsubscribe();
   }, []);
 
+  // 2. Data Syncing (Participants)
   useEffect(() => {
     if (!user) return;
     const q = collection(db, 'artifacts', appId, 'public', 'data', 'participants');
-    const unsubscribe = onSnapshot(q, snapshot => {
-      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Participant));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Participant));
       setParticipants(data);
     });
     return () => unsubscribe();
   }, [user]);
 
+  // 3. Check My Status
   useEffect(() => {
     if (!user || !formData.phone) return;
     const myDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', formData.phone);
@@ -147,11 +123,15 @@ export default function NewYearRaffle() {
         setMyRegistration(data);
         localStorage.setItem('raffle_phone', formData.phone);
         localStorage.setItem('raffle_name', data.name);
-        if (data.hasWon) setShowConfetti(true);
+        if (data.hasWon) {
+           setShowConfetti(true);
+        }
       }
     });
     return () => unsubscribe();
   }, [user, formData.phone]);
+
+  // --- Actions ---
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,49 +171,59 @@ export default function NewYearRaffle() {
     setIsSpinning(true);
     setShowConfetti(false);
     setWinner(null);
+    animationControls.set({ y: 0 }); // Reset position
 
+    // 1. เลือกผู้ชนะไว้ล่วงหน้า
     const selectedWinner = eligibleParticipants[Math.floor(Math.random() * eligibleParticipants.length)];
     setWinner(selectedWinner);
     
-    // Create a shuffled list for the final "rotation" to land on
-    const finalRotation = shuffleArray(eligibleParticipants);
-    const winnerIndexInFinalRotation = finalRotation.findIndex(p => p.id === selectedWinner.id);
-
-    // Create the full reel for the animation
-    let finalReel: Participant[] = [];
-    for (let i = 0; i < NUM_ROTATIONS; i++) {
-        finalReel.push(...shuffleArray(eligibleParticipants));
+    // 2. สร้าง "Reel" หรือสายพานรายชื่อยาวๆ
+    // เทคนิค: เอา list มาต่อกันหลายๆ รอบ + ผู้ชนะ + ต่อท้ายอีกนิดหน่อยเพื่อให้หยุดกลางจอพอดี
+    
+    let tempReel: Participant[] = [];
+    
+    // 2.1 ช่วงหมุนเล่น (Filler) - ยิ่งเยอะยิ่งหมุนนาน
+    // ถ้าคนน้อย (เช่น < 10) ให้วนเยอะรอบหน่อย (เช่น 30 รอบ) ถ้าคนเยอะ (เช่น 100) วนน้อยรอบ (เช่น 5 รอบ)
+    const loops = eligibleParticipants.length < 10 ? 30 : 5;
+    
+    for (let i = 0; i < loops; i++) {
+        tempReel = [...tempReel, ...shuffleArray(eligibleParticipants)];
     }
-    finalReel.push(...finalRotation);
-    setReelNames(finalReel);
 
-    // Calculate the distance to the winner
-    const preWinnerReelSize = finalReel.length - finalRotation.length;
-    const winnerPosition = preWinnerReelSize + winnerIndexInFinalRotation;
-    
-    const viewportHeight = viewportRef.current?.offsetHeight ?? 0;
-    const centeringAdjustment = (viewportHeight / 2) - (ITEM_HEIGHT / 2);
-    
-    const totalDistance = (winnerPosition * ITEM_HEIGHT) - centeringAdjustment;
+    // 2.2 ใส่ผู้ชนะลงไปที่ตำแหน่ง "เกือบสุดท้าย"
+    // ต้องแน่ใจว่าผู้ชนะไม่ได้อยู่ท้ายสุด เพื่อให้มีพื้นที่เหลือด้านล่าง (padding bottom)
+    const winnerIndex = tempReel.length; // ตำแหน่งที่จะใส่ผู้ชนะ
+    tempReel.push(selectedWinner);
 
+    // 2.3 ใส่ตัวหลอกต่อท้ายอีกสัก 3-4 คน เพื่อให้ไม่เห็นขอบขาวด้านล่างตอนหยุด
+    const paddingCount = 4; 
+    const paddingItems = shuffleArray(eligibleParticipants).slice(0, paddingCount);
+    tempReel = [...tempReel, ...paddingItems];
+
+    setReelNames(tempReel);
+
+    // 3. คำนวณระยะทางที่จะเลื่อน (Pixels)
+    // สูตร: -(ตำแหน่งผู้ชนะ * ความสูง) + (ครึ่งหนึ่งของความสูงกล่อง) - (ครึ่งหนึ่งของความสูงไอเท็ม)
+    // เพื่อให้ item ของผู้ชนะมาหยุดตรงกลางเป๊ะๆ
+    const targetY = -(winnerIndex * ITEM_HEIGHT) + (CONTAINER_HEIGHT / 2) - (ITEM_HEIGHT / 2);
+
+    // 4. เริ่ม Animation
     animationControls.start({
-      y: -totalDistance,
+      y: targetY,
       transition: {
-        type: 'spring',
-        damping: 18,
-        stiffness: 50,
-        mass: 1.5,
-        bounce: 0.1,
-        duration: 9
+        duration: 6, // หมุนนาน 6 วินาที
+        ease: [0.15, 0.85, 0.35, 1], // Cubic Bezier เพื่อให้เริ่มเร็วและหยุดนิ่มๆ (เหมือน slot)
       }
+    }).then(() => {
+        handleAnimationComplete(selectedWinner);
     });
   };
 
-  const handleAnimationComplete = () => {
+  const handleAnimationComplete = (confirmedWinner: Participant) => {
       setIsSpinning(false);
       setShowConfetti(true);
-      if(winner) {
-        const winnerRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', winner.id);
+      if(confirmedWinner) {
+        const winnerRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', confirmedWinner.id);
         updateDoc(winnerRef, { hasWon: true });
       }
   };
@@ -246,7 +236,7 @@ export default function NewYearRaffle() {
         setWinner(null);
         setShowConfetti(false);
         setIsAdminMenuOpen(false);
-        animationControls.set({ x: 0 });
+        animationControls.set({ y: 0 }); 
         alert("รีเซ็ตสถานะผู้ชนะสำเร็จ!");
     } catch (e: unknown) {
         if (e instanceof Error) alert("รีเซ็ตไม่สำเร็จ: " + e.message);
@@ -259,6 +249,7 @@ export default function NewYearRaffle() {
         if (pass !== null) alert("รหัสผ่านไม่ถูกต้อง! การลบข้อมูลถูกยกเลิก");
         return;
     }
+    
     try {
         const querySnapshot = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'participants'));
         await Promise.all(querySnapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
@@ -268,12 +259,18 @@ export default function NewYearRaffle() {
     }
   };
 
+  // --- Views ---
+
   if (mode === 'projector') {
     return (
       <div className="min-h-screen bg-ny-blue text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
-        <Sparkles />
-        {showConfetti && <ReactConfetti width={width} height={height} numberOfPieces={300} recycle={false} />}
-        
+        {/* Ornaments */}
+        <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
+             <div className="absolute top-10 left-10 text-6xl text-ny-gold animate-pulse">✨</div>
+             <div className="absolute bottom-20 right-20 text-8xl text-ny-gold animate-bounce">🎁</div>
+        </div>
+
+        {/* Admin Menu */}
         <div className="absolute top-4 right-4 z-30">
             <button onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)} className="bg-gray-800/90 backdrop-blur-sm p-3 text-white rounded-full shadow-lg hover:bg-gray-700 transition-colors" aria-label="เมนูผู้ดูแล">
                 <Settings size={20} />
@@ -296,23 +293,64 @@ export default function NewYearRaffle() {
             🎉 จับรางวัลปีใหม่ 2026 🎉
           </h1>
 
-          <div className="bg-gradient-to-br from-gray-700 to-gray-900 p-4 rounded-3xl shadow-2xl border-4 border-ny-gold mb-10 w-full max-w-4xl relative">
-            <div ref={viewportRef} className="h-48 w-full rounded-xl bg-white/90 shadow-inner overflow-hidden relative">
-              <div className="absolute left-1/2 top-0 -translate-x-1/2 w-1.5 h-full bg-red-500/80 z-20 shadow-lg shadow-red-500/50 rounded-full"></div>
-              
-              <motion.div className="h-full flex items-center" animate={animationControls} onAnimationComplete={handleAnimationComplete}>
-                {reelNames.map((p, i) => (
-                  <div key={`${i}-${p.id}`} className="h-full flex-shrink-0 flex items-center justify-center text-center text-gray-800 font-bold text-4xl" style={{ width: ITEM_WIDTH }}>
-                    <span className="truncate px-4">{p.name}</span>
-                  </div>
-                ))}
-              </motion.div>
+          {/* --- The Vertical Slot Machine --- */}
+          <div className="relative mb-10 w-full max-w-md">
+            
+            {/* Machine Frame */}
+            <div className="bg-gradient-to-br from-gray-700 to-gray-900 p-4 rounded-3xl shadow-2xl border-4 border-ny-gold relative">
+                
+                {/* Viewport Window */}
+                <div 
+                    className="w-full bg-white rounded-xl shadow-inner overflow-hidden relative"
+                    style={{ height: CONTAINER_HEIGHT }}
+                >
+                    {/* Center Highlight Bar (The red line/box) */}
+                    <div className="absolute top-1/2 left-0 -translate-y-1/2 w-full h-[80px] bg-red-500/10 border-y-2 border-red-500/50 z-20 pointer-events-none shadow-[0_0_15px_rgba(239,68,68,0.3)]"></div>
+                    
+                    {/* Top Fade Gradient */}
+                    <div className="absolute top-0 left-0 w-full h-16 bg-gradient-to-b from-gray-200 to-transparent z-10 pointer-events-none"></div>
+                    {/* Bottom Fade Gradient */}
+                    <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-gray-200 to-transparent z-10 pointer-events-none"></div>
+
+                    {/* The Moving Reel */}
+                    <motion.div
+                        className="flex flex-col items-center w-full"
+                        animate={animationControls}
+                    >
+                        {/* Initial State (Placeholder) */}
+                        {!isSpinning && reelNames.length === 0 && (
+                            <div className="flex flex-col items-center justify-center h-full w-full py-20 text-gray-400">
+                                <div style={{ height: ITEM_HEIGHT }} className="flex items-center justify-center text-3xl font-bold opacity-50">?</div>
+                                <div style={{ height: ITEM_HEIGHT }} className="flex items-center justify-center text-3xl font-bold opacity-50">?</div>
+                                <div style={{ height: ITEM_HEIGHT }} className="flex items-center justify-center text-4xl font-bold text-gray-800">พร้อมสุ่ม</div>
+                                <div style={{ height: ITEM_HEIGHT }} className="flex items-center justify-center text-3xl font-bold opacity-50">?</div>
+                                <div style={{ height: ITEM_HEIGHT }} className="flex items-center justify-center text-3xl font-bold opacity-50">?</div>
+                            </div>
+                        )}
+
+                        {/* Actual Names */}
+                        {reelNames.map((p, i) => (
+                            <div 
+                                key={`${p.id}-${i}`} 
+                                style={{ height: ITEM_HEIGHT }}
+                                className={`w-full flex items-center justify-center text-center font-bold text-3xl px-4
+                                    ${winner && p.id === winner.id && i === reelNames.length - 1 - 4 ? 'text-red-600 scale-110' : 'text-gray-700'}
+                                `}
+                            >
+                                <span className="truncate w-full">{p.name}</span>
+                            </div>
+                        ))}
+                    </motion.div>
+                </div>
             </div>
-            <div className="mt-4 flex justify-between items-center px-4">
-                 <div className="text-gray-300 font-semibold">ผู้เข้าร่วม: {participants.length} คน</div>
-                 <div className="text-gray-300 font-semibold">ผู้โชคดีแล้ว: {participants.filter(p=>p.hasWon).length} คน</div>
+
+            {/* Stats */}
+            <div className="mt-4 flex justify-between items-center px-4 text-sm">
+                 <div className="text-gray-300 font-semibold bg-black/30 px-3 py-1 rounded-full">ผู้เข้าร่วม: {participants.length} คน</div>
+                 <div className="text-gray-300 font-semibold bg-black/30 px-3 py-1 rounded-full">แจกแล้ว: {participants.filter(p=>p.hasWon).length} คน</div>
             </div>
           </div>
+
 
           <div className="flex gap-4 justify-center">
              <button onClick={startSpin} disabled={isSpinning || eligibleParticipants.length === 0} className={`px-12 py-6 rounded-full text-2xl font-bold shadow-lg transition-all transform hover:-translate-y-1 active:translate-y-1 ${isSpinning ? 'bg-gray-500 cursor-not-allowed text-gray-300' : 'bg-gradient-to-b from-ny-gold to-yellow-600 text-black border-b-4 border-yellow-800 hover:brightness-110'}`}>
@@ -321,9 +359,9 @@ export default function NewYearRaffle() {
           </div>
           
           {showConfetti && winner && (
-             <div className="mt-8 animate-bounce">
+             <div className="mt-8 animate-bounce z-30">
                 <div className="text-2xl text-ny-gold mb-2 flex items-center justify-center gap-3"><Star/> ขอแสดงความยินดีกับ <Star/></div>
-                <div className="text-5xl font-bold text-black bg-ny-gold/90 px-8 py-4 rounded-xl inline-block backdrop-blur-sm border-2 border-yellow-300">
+                <div className="text-5xl font-bold text-black bg-ny-gold/90 px-8 py-4 rounded-xl inline-block backdrop-blur-sm border-2 border-yellow-300 shadow-[0_0_30px_rgba(234,179,8,0.6)]">
                     {winner.name}
                 </div>
                 <div className="text-lg text-gray-300 mt-2">เบอร์โทร: {winner.phone.substring(0, 3)}-xxxx-{winner.phone.substring(winner.phone.length - 3)}</div>
@@ -339,18 +377,18 @@ export default function NewYearRaffle() {
     <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 font-sans text-slate-800 relative">
       {isPasswordPromptVisible && (
         <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
-                <h3 className="text-xl font-bold text-slate-800 mb-4">เข้าสู่โหมดผู้ดูแล</h3>
-                <form onSubmit={handlePasswordSubmit}>
-                    <p className="text-sm text-slate-600 mb-4">กรุณาใส่รหัสผ่านเพื่อดำเนินการต่อ</p>
-                    {passwordError && <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm mb-4 border border-red-200">{passwordError}</div>}
-                    <input type="password" className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-ny-gold focus:border-transparent outline-none transition" placeholder="******" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} autoFocus />
-                    <div className="flex gap-4 mt-6">
-                        <button type="button" onClick={() => { setIsPasswordPromptVisible(false); setPasswordInput(''); setPasswordError(''); }} className="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 rounded-lg transition-colors">ยกเลิก</button>
-                        <button type="submit" className="w-full bg-ny-blue hover:bg-blue-900 text-white font-bold py-2 rounded-lg transition-colors">ยืนยัน</button>
-                    </div>
-                </form>
-            </div>
+          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
+            <h3 className="text-xl font-bold text-slate-800 mb-4">เข้าสู่โหมดผู้ดูแล</h3>
+            <form onSubmit={handlePasswordSubmit}>
+              <p className="text-sm text-slate-600 mb-4">กรุณาใส่รหัสผ่านเพื่อดำเนินการต่อ</p>
+              {passwordError && <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm mb-4 border border-red-200">{passwordError}</div>}
+              <input type="password" className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-ny-gold focus:border-transparent outline-none transition" placeholder="******" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} autoFocus />
+              <div className="flex gap-4 mt-6">
+                <button type="button" onClick={() => { setIsPasswordPromptVisible(false); setPasswordInput(''); setPasswordError(''); }} className="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 rounded-lg transition-colors">ยกเลิก</button>
+                <button type="submit" className="w-full bg-ny-blue hover:bg-blue-900 text-white font-bold py-2 rounded-lg transition-colors">ยืนยัน</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
@@ -372,7 +410,7 @@ export default function NewYearRaffle() {
                    </div>
                ) : (
                    <div className="space-y-4">
-                       <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto"><IconSparkles className="text-ny-blue w-10 h-10" /></div>
+                       <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto"><Sparkles className="text-ny-blue w-10 h-10" /></div>
                        <h3 className="text-xl font-semibold text-ny-blue">ลงทะเบียนสำเร็จ!</h3>
                        <div className="bg-slate-100 p-4 rounded-lg text-left">
                            <p className="text-xs text-gray-500 mb-1">ชื่อที่ลงทะเบียน</p>
