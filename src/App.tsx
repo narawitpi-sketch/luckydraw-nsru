@@ -5,7 +5,7 @@ import {
   getFirestore, collection, doc, setDoc, getDoc, 
   onSnapshot, updateDoc, getDocs, deleteDoc
 } from 'firebase/firestore';
-import { Gift, Smartphone, UserPlus, Trophy, PartyPopper, RefreshCw, Sparkles } from 'lucide-react';
+import { Gift, Smartphone, UserPlus, Trophy, PartyPopper, RefreshCw, Sparkles, Settings } from 'lucide-react';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD8vFAEhmjSZlrVw8PgkKVvxqaQ1_7deWc",
@@ -432,17 +432,11 @@ export default function NewYearRaffle() {
           )}
         </div>
         
-        <div className="p-4 bg-slate-50">
-            <button 
-                onClick={handleGoToProjector}
-                className="w-full text-center py-2 text-sm text-slate-500 hover:bg-slate-200 hover:text-slate-700 rounded-md transition-colors"
-            >
-                สำหรับผู้ดูแล (Admin)
-            </button>
-        </div>
-
-        <div className="bg-gray-50 p-4 text-center text-xs text-gray-400 border-t border-gray-100">
-           New Year Lucky Draw NSRU System © 2026
+        <div className="bg-gray-50 p-4 flex justify-between items-center text-xs text-gray-400 border-t border-gray-100">
+           <span>New Year Lucky Draw NSRU System © 2026</span>
+           <button onClick={handleGoToProjector} className="text-gray-400 hover:text-gray-700">
+                <Settings size={18} />
+           </button>
         </div>
       </div>
     </div>
