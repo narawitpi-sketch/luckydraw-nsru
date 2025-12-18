@@ -7,8 +7,6 @@ import {
 } from 'firebase/firestore';
 import { Gift, Smartphone, UserPlus, Trophy, PartyPopper, RefreshCw, Sparkles, Settings } from 'lucide-react';
 
-// --- Configuration ---
-// ⚠️ อย่าลืมแก้ตรงนี้เป็น Config ของคุณเองนะครับ ⚠️
 const firebaseConfig = {
     apiKey: "AIzaSyD8vFAEhmjSZlrVw8PgkKVvxqaQ1_7deWc",
     authDomain: "luckydraw-nsru.firebaseapp.com",
@@ -72,9 +70,9 @@ export default function NewYearRaffle() {
     }
   };
 
+
   // Refs
-  // ใช้ number | null สำหรับเก็บ ID ของ setInterval ใน browser env
-  const spinInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  // const spinInterval = useRef<NodeJS.Timeout | null>(null);
 
   // 1. Auth & Initial Setup
   useEffect(() => {
@@ -177,35 +175,51 @@ export default function NewYearRaffle() {
 
     setIsSpinning(true);
     setWinnerData(null);
+    setShowConfetti(false);
 
-    let counter = 0;
-    // Clear interval เก่าถ้ามี
-    if (spinInterval.current) clearInterval(spinInterval.current);
+    // 1. Pick a winner beforehand
+    const winner = eligible[Math.floor(Math.random() * eligible.length)];
+    
+    // 2. Animation logic with slowdown
+    const totalSpins = 30; // How many name changes
+    let currentSpin = 0;
 
-    spinInterval.current = setInterval(() => {
-      const randomName = eligible[Math.floor(Math.random() * eligible.length)].name;
-      setSlotName(randomName);
-      counter++;
-    }, 100);
+    const spin = () => {
+        currentSpin++;
+        const isFinishing = currentSpin > totalSpins - 5;
+        
+        // Pick a random name to display, but not the winner unless it's the end
+        let nameToShow;
+        if (currentSpin === totalSpins) {
+            nameToShow = winner.name;
+        } else {
+            const displayPool = eligible.filter(p => p.id !== winner.id);
+            nameToShow = displayPool.length > 0 
+                ? displayPool[Math.floor(Math.random() * displayPool.length)].name
+                : winner.name; // Fallback if only one eligible person
+        }
+        setSlotName(nameToShow);
 
-    setTimeout(() => {
-      if (spinInterval.current) {
-        clearInterval(spinInterval.current);
-        spinInterval.current = null;
-      }
-      
-      const winnerIndex = Math.floor(Math.random() * eligible.length);
-      const winner = eligible[winnerIndex];
-      
-      setSlotName(winner.name);
-      setWinnerData(winner);
-      setIsSpinning(false);
-      setShowConfetti(true);
+        if (currentSpin < totalSpins) {
+            // As we get closer to the end, the timeout duration increases, slowing it down.
+            const baseSpeed = 50; // ms
+            const slowdownFactor = Math.pow(currentSpin / totalSpins, 2);
+            const timeout = baseSpeed + (slowdownFactor * 150); // Adjust 150 to control slowdown rate
+            setTimeout(spin, timeout);
+        } else {
+            // 3. Animation finished, set final winner
+            setSlotName(winner.name);
+            setWinnerData(winner);
+            setIsSpinning(false);
+            setShowConfetti(true);
 
-      const winnerRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', winner.id);
-      updateDoc(winnerRef, { hasWon: true });
+            // 4. Update winner in Firestore
+            const winnerRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', winner.id);
+            updateDoc(winnerRef, { hasWon: true });
+        }
+    };
 
-    }, 3000);
+    spin();
   };
 
   const resetWinners = async () => {
@@ -231,17 +245,25 @@ export default function NewYearRaffle() {
   };
 
   const resetData = async () => {
-    if(!window.confirm("คุณแน่ใจหรือไม่ที่จะลบข้อมูลทั้งหมด? การกระทำนี้ไม่สามารถย้อนกลับได้")) return;
+    const pass = prompt("การกระทำนี้จะลบข้อมูลทั้งหมดและไม่สามารถย้อนกลับได้! \nกรุณาใส่รหัสผ่านผู้ดูแลระบบเพื่อยืนยัน:");
+    if (pass !== "nsru@2025") {
+        if (pass !== null) { // Don't show alert if user cancelled the prompt
+            alert("รหัสผ่านไม่ถูกต้อง! การลบข้อมูลถูกยกเลิก");
+        }
+        return;
+    }
     
     try {
         const querySnapshot = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'participants'));
-        querySnapshot.forEach((docSnap) => {
-            deleteDoc(docSnap.ref);
-        });
+        const deletePromises = querySnapshot.docs.map((docSnap) => deleteDoc(docSnap.ref));
+        
+        await Promise.all(deletePromises);
+
         setParticipants([]);
         setMyRegistration(null);
         setSlotName("พร้อมสุ่ม");
         localStorage.clear();
+        alert("ลบข้อมูลทั้งหมดสำเร็จแล้ว");
         window.location.reload();
     } catch(e: unknown) {
         if (e instanceof Error) {
@@ -260,9 +282,31 @@ export default function NewYearRaffle() {
              <div className="absolute bottom-20 right-20 text-8xl text-yellow-500 animate-bounce">🎁</div>
         </div>
 
+        <div className="absolute top-4 right-4">
+            <button onClick={handleAdminAccess} className="text-white/50 hover:text-white"><Settings size={22}/></button>
+        </div>
+
+        {isAdminAuthenticated && (
+            <div className="absolute top-16 right-4 bg-gray-800/90 backdrop-blur-sm p-4 text-white text-sm rounded-lg shadow-lg z-20 w-64">
+                 <h3 className="font-bold mb-3 border-b border-gray-600 pb-2">เมนูผู้ดูแล (Admin)</h3>
+                 <div className="flex flex-col gap-2">
+                     <button onClick={resetWinners} className="bg-yellow-600 py-2 rounded hover:bg-yellow-500 w-full text-center flex items-center justify-center gap-2">
+                        <RefreshCw size={14}/> รีเซ็ตผู้ชนะ
+                     </button>
+                     <button onClick={resetData} className="bg-red-900 py-2 rounded hover:bg-red-800 w-full text-center flex items-center justify-center gap-2">
+                         <RefreshCw size={14}/> ล้างข้อมูลทั้งหมด
+                     </button>
+                     <div className="h-px bg-gray-600 my-2"></div>
+                     <button onClick={() => setMode('register')} className="bg-gray-600 py-2 rounded hover:bg-gray-500 w-full text-center flex items-center justify-center gap-1">
+                        <Smartphone size={14}/> กลับไปหน้าลงทะเบียน
+                    </button>
+                 </div>
+            </div>
+        )}
+
         <div className="z-10 w-full max-w-4xl text-center">
           <h1 className="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-100 to-yellow-500 mb-8 drop-shadow-lg">
-            🎉 จับรางวัลปีใหม่ 2026 🎉
+            🎉 จับรางวัลปีใหม่ 2025 🎉
           </h1>
 
           <div className="bg-gradient-to-br from-yellow-600 to-yellow-800 p-4 rounded-3xl shadow-2xl border-4 border-yellow-400 mb-10 mx-auto max-w-2xl transform transition-transform hover:scale-105">
@@ -304,10 +348,6 @@ export default function NewYearRaffle() {
              </div>
           )}
         </div>
-
-        <button onClick={() => setMode('register')} className="absolute bottom-4 left-4 text-white/30 hover:text-white text-sm flex items-center gap-1">
-            <Smartphone size={14}/> กลับไปหน้าลงทะเบียน
-        </button>
       </div>
     );
   }
@@ -319,30 +359,10 @@ export default function NewYearRaffle() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
         
         <div className="bg-red-600 p-6 text-center relative">
-          <div className="absolute top-4 right-4">
-             <button onClick={handleAdminAccess} className="text-red-300 hover:text-white"><Settings size={18}/></button>
-          </div>
           <Gift className="w-12 h-12 text-yellow-300 mx-auto mb-2" />
           <h2 className="text-2xl font-bold text-white">ลงทะเบียนชิงโชคปีใหม่</h2>
-          <p className="text-red-100 text-sm">New Year Party 2026</p>
+          <p className="text-red-100 text-sm">New Year Party 2025</p>
         </div>
-
-        {isAdminAuthenticated && (
-             <div className="bg-gray-800 p-4 text-white text-sm">
-                 <h3 className="font-bold mb-2 border-b border-gray-600 pb-1">เมนูผู้ดูแล (Admin)</h3>
-                 <div className="flex flex-col gap-2">
-                     <button onClick={() => setMode('projector')} className="bg-blue-600 py-2 rounded hover:bg-blue-500 w-full text-center">
-                         📺 เปิดหน้าจอ Projector (สุ่มรางวัล)
-                     </button>
-                     <button onClick={resetWinners} className="bg-yellow-600 py-2 rounded hover:bg-yellow-500 w-full text-center flex items-center justify-center gap-2">
-                        <RefreshCw size={14}/> รีเซ็ตผู้ชนะ (เก็บรายชื่อไว้)
-                     </button>
-                     <button onClick={resetData} className="bg-red-900 py-2 rounded hover:bg-red-800 w-full text-center flex items-center justify-center gap-2">
-                         <RefreshCw size={14}/> ล้างข้อมูลผู้ลงทะเบียนทั้งหมด
-                     </button>
-                 </div>
-             </div>
-        )}
 
         <div className="p-8">
           {myRegistration ? (
