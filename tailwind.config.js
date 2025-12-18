@@ -9,6 +9,9 @@ export default {
       fontFamily: {
         sans: ['Google Sans', 'sans-serif'],
       },
+      colors: {
+        'gemini-green': '#66FF00',
+      }
     },
   },
   plugins: [],
