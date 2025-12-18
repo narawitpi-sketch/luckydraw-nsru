@@ -183,44 +183,70 @@ export default function NewYearRaffle() {
     // 1. Pick a winner beforehand
     const winner = eligible[Math.floor(Math.random() * eligible.length)];
     
-    // 2. Animation logic with slowdown
-    const totalSpins = 30; // How many name changes
-    let currentSpin = 0;
+    // 2. Create a realistic animation reel
+    let animationReel = [];
+    
+    // The pool of names to display during the spin
+    // If there's only one person, they are the winner, but we can still show their name "spinning"
+    const displayPool = eligible.length > 1 ? eligible.filter(p => p.id !== winner.id) : [winner];
+
+    // For a good visual effect, create a reel of about 30-40 names
+    const desiredReelLength = 40;
+    if (displayPool.length > 0) {
+        while (animationReel.length < desiredReelLength) {
+            // Shuffle and add all names from the display pool
+            const shuffled = [...displayPool].sort(() => 0.5 - Math.random());
+            animationReel.push(...shuffled);
+        }
+    }
+    // Ensure the reel isn't too long, and trim it to the desired length.
+    animationReel = animationReel.slice(0, desiredReelLength);
+
+    // IMPORTANT: Add the winner at the very end
+    animationReel.push(winner);
+
+    // 3. Animation logic with slowdown
+    let spinIndex = 0;
+    const totalSpins = animationReel.length;
 
     const spin = () => {
-        currentSpin++;
-        
-        // Pick a random name to display, but not the winner unless it's the end
-        let nameToShow;
-        if (currentSpin === totalSpins) {
-            nameToShow = winner.name;
-        } else {
-            const displayPool = eligible.filter(p => p.id !== winner.id);
-            nameToShow = displayPool.length > 0 
-                ? displayPool[Math.floor(Math.random() * displayPool.length)].name
-                : winner.name; // Fallback if only one eligible person
+        // Handle case where reel might be empty if there are no eligible participants (though checked before)
+        if(animationReel[spinIndex]) {
+            setSlotName(animationReel[spinIndex].name);
         }
-        setSlotName(nameToShow);
+        
+        spinIndex++;
 
-        if (currentSpin < totalSpins) {
-            // As we get closer to the end, the timeout duration increases, slowing it down.
-            const baseSpeed = 50; // ms
-            const slowdownFactor = Math.pow(currentSpin / totalSpins, 2);
-            const timeout = baseSpeed + (slowdownFactor * 150); // Adjust 150 to control slowdown rate
+        if (spinIndex < totalSpins) {
+            const progress = spinIndex / totalSpins;
+            
+            // Start fast, then slow down dramatically towards the end
+            let timeout;
+            if (progress < 0.5) {
+                timeout = 50; // Fast at the beginning
+            } else if (progress < 0.8) {
+                timeout = 100;
+            } else if (progress < 0.9) {
+                timeout = 200;
+            } else {
+                timeout = 300; // Very slow for the last few names
+            }
+            
             setTimeout(spin, timeout);
         } else {
-            // 3. Animation finished, set final winner
+            // 4. Animation finished, display final winner
             setSlotName(winner.name);
             setWinnerData(winner);
             setIsSpinning(false);
             setShowConfetti(true);
 
-            // 4. Update winner in Firestore
+            // 5. Update winner in Firestore
             const winnerRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', winner.id);
             updateDoc(winnerRef, { hasWon: true });
         }
     };
 
+    // Start the first spin immediately
     spin();
   };
 
