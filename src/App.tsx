@@ -5,7 +5,7 @@ import {
   getFirestore, collection, doc, setDoc, getDoc, 
   onSnapshot, updateDoc, getDocs, deleteDoc
 } from 'firebase/firestore';
-import { Gift, Smartphone, UserPlus, Trophy, PartyPopper, RefreshCw, Sparkles, Settings } from 'lucide-react';
+import { Gift, Smartphone, UserPlus, Trophy, PartyPopper, RefreshCw, Sparkles } from 'lucide-react';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD8vFAEhmjSZlrVw8PgkKVvxqaQ1_7deWc",
@@ -46,11 +46,6 @@ export default function NewYearRaffle() {
   const [slotName, setSlotName] = useState<string>("พร้อมสุ่ม");
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
   const [winnerData, setWinnerData] = useState<Participant | null>(null);
-
-  // Form State
-  const [formData, setFormData] = useState<FormDataState>({ name: '', phone: '' });
-  const [error, setError] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
 
   // Form State
   const [formData, setFormData] = useState<FormDataState>({ name: '', phone: '' });
