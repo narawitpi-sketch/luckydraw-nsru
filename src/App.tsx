@@ -271,10 +271,10 @@ export default function NewYearRaffle() {
 
   if (mode === 'projector') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gemini-green to-black text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+      <div className="min-h-screen bg-ny-blue text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
         <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
-             <div className="absolute top-10 left-10 text-6xl text-cyan-500 animate-pulse">✨</div>
-             <div className="absolute bottom-20 right-20 text-8xl text-cyan-500 animate-bounce">🎁</div>
+             <div className="absolute top-10 left-10 text-6xl text-ny-gold animate-pulse">✨</div>
+             <div className="absolute bottom-20 right-20 text-8xl text-ny-gold animate-bounce">🎁</div>
         </div>
 
         <div className="absolute top-4 right-4 z-20">
@@ -287,15 +287,15 @@ export default function NewYearRaffle() {
             </button>
             
             {isAdminMenuOpen && (
-                <div className="absolute top-14 right-0 bg-gray-800/90 backdrop-blur-sm p-4 text-white text-sm rounded-lg shadow-lg w-64">
+                <div className="absolute top-14 right-0 bg-gray-900/90 backdrop-blur-sm p-4 text-white text-sm rounded-lg shadow-lg w-64 border border-gray-700">
                      <h3 className="font-bold mb-3 border-b border-gray-600 pb-2">
                         เมนูผู้ดูแล
                      </h3>
                      <div className="flex flex-col gap-2">
-                         <button onClick={resetWinners} className="bg-cyan-600 py-2 rounded hover:bg-cyan-500 w-full text-center flex items-center justify-center gap-2 transition-colors">
+                         <button onClick={resetWinners} className="bg-yellow-600 py-2 rounded hover:bg-yellow-500 w-full text-center flex items-center justify-center gap-2 transition-colors">
                             <RefreshCw size={14}/> รีเซ็ตผู้ชนะ
                          </button>
-                         <button onClick={resetData} className="bg-red-900 py-2 rounded hover:bg-red-800 w-full text-center flex items-center justify-center gap-2 transition-colors">
+                         <button onClick={resetData} className="bg-red-800 py-2 rounded hover:bg-red-700 w-full text-center flex items-center justify-center gap-2 transition-colors">
                              <RefreshCw size={14}/> ล้างข้อมูลทั้งหมด
                          </button>
                          <div className="h-px bg-gray-600 my-2"></div>
@@ -308,11 +308,11 @@ export default function NewYearRaffle() {
         </div>
 
         <div className="z-10 w-full max-w-4xl text-center">
-          <h1 className="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-gemini-green to-green-500 mb-8 drop-shadow-lg">
+          <h1 className="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-ny-gold to-yellow-400 mb-8 drop-shadow-lg">
             🎉 จับรางวัลปีใหม่ 2026 🎉
           </h1>
 
-          <div className="bg-gradient-to-br from-cyan-600 to-cyan-800 p-4 rounded-3xl shadow-2xl border-4 border-cyan-400 mb-10 mx-auto max-w-2xl transform transition-transform hover:scale-105">
+          <div className="bg-gradient-to-br from-gray-700 to-gray-900 p-4 rounded-3xl shadow-2xl border-4 border-ny-gold mb-10 mx-auto max-w-2xl transform transition-transform hover:scale-105">
             <div className="bg-white rounded-xl overflow-hidden h-48 md:h-64 flex items-center justify-center border-b-8 border-gray-200 shadow-inner relative">
                <div className="absolute top-0 w-full h-8 bg-gradient-to-b from-black to-transparent opacity-30 z-10"></div>
                <div className="absolute bottom-0 w-full h-8 bg-gradient-to-t from-black to-transparent opacity-30 z-10"></div>
@@ -322,8 +322,8 @@ export default function NewYearRaffle() {
                </div>
             </div>
             <div className="mt-4 flex justify-between items-center px-4">
-                 <div className="text-cyan-200 font-semibold">ผู้เข้าร่วม: {participants.length} คน</div>
-                 <div className="text-cyan-200 font-semibold">ผู้โชคดีแล้ว: {participants.filter(p=>p.hasWon).length} คน</div>
+                 <div className="text-gray-300 font-semibold">ผู้เข้าร่วม: {participants.length} คน</div>
+                 <div className="text-gray-300 font-semibold">ผู้โชคดีแล้ว: {participants.filter(p=>p.hasWon).length} คน</div>
             </div>
           </div>
 
@@ -334,7 +334,7 @@ export default function NewYearRaffle() {
                className={`px-12 py-6 rounded-full text-2xl font-bold shadow-lg transition-all transform hover:-translate-y-1 active:translate-y-1
                  ${isSpinning 
                    ? 'bg-gray-500 cursor-not-allowed text-gray-300' 
-                   : 'bg-gradient-to-b from-gemini-green to-green-700 text-white border-b-4 border-green-900 hover:brightness-110'
+                   : 'bg-gradient-to-b from-ny-gold to-yellow-600 text-black border-b-4 border-yellow-800 hover:brightness-110'
                  }`}
              >
                {isSpinning ? 'กำลังหมุน...' : '🕹️ สุ่มรางวัล!'}
@@ -343,11 +343,11 @@ export default function NewYearRaffle() {
           
           {showConfetti && winnerData && !isSpinning && (
              <div className="mt-8 animate-bounce">
-                <div className="text-2xl text-cyan-300 mb-2">✨ ขอแสดงความยินดีกับ ✨</div>
-                <div className="text-5xl font-bold text-white bg-green-600/80 px-8 py-4 rounded-xl inline-block backdrop-blur-sm border-2 border-cyan-400">
+                <div className="text-2xl text-ny-gold mb-2">✨ ขอแสดงความยินดีกับ ✨</div>
+                <div className="text-5xl font-bold text-black bg-ny-gold/90 px-8 py-4 rounded-xl inline-block backdrop-blur-sm border-2 border-yellow-300">
                     {winnerData.name}
                 </div>
-                <div className="text-lg text-cyan-200 mt-2">เบอร์โทร: {winnerData.phone.substring(0, 3)}-xxxx-{winnerData.phone.substring(winnerData.phone.length - 3)}</div>
+                <div className="text-lg text-gray-300 mt-2">เบอร์โทร: {winnerData.phone.substring(0, 3)}-xxxx-{winnerData.phone.substring(winnerData.phone.length - 3)}</div>
              </div>
           )}
         </div>
@@ -357,14 +357,14 @@ export default function NewYearRaffle() {
 
   // 2. User Registration / Status View
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 font-sans text-slate-800">
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 font-sans text-slate-800">
       
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
         
-        <div className="bg-gemini-green p-6 text-center relative">
-          <Gift className="w-12 h-12 text-cyan-400 mx-auto mb-2" />
-          <h2 className="text-2xl font-bold text-green-900">ลงทะเบียนชิงโชคปีใหม่</h2>
-          <p className="text-green-800 text-sm">New Year Party 2026</p>
+        <div className="bg-ny-blue p-6 text-center relative">
+          <Gift className="w-12 h-12 text-ny-gold mx-auto mb-2" />
+          <h2 className="text-2xl font-bold text-white">ลงทะเบียนชิงโชคปีใหม่</h2>
+          <p className="text-blue-200 text-sm">New Year Party 2026</p>
         </div>
 
         <div className="p-8">
@@ -373,20 +373,20 @@ export default function NewYearRaffle() {
                
                {myRegistration.hasWon ? (
                    <div className="animate-pulse space-y-4 py-8">
-                       <Trophy className="w-24 h-24 text-cyan-500 mx-auto drop-shadow-md" />
-                       <h3 className="text-3xl font-bold text-green-600">ยินดีด้วย!!!</h3>
+                       <Trophy className="w-24 h-24 text-ny-gold mx-auto drop-shadow-md" />
+                       <h3 className="text-3xl font-bold text-ny-blue">ยินดีด้วย!!!</h3>
                        <p className="text-xl text-slate-700">คุณได้รับรางวัลแล้ว</p>
-                       <div className="bg-cyan-100 text-cyan-800 px-4 py-2 rounded-lg inline-block border border-cyan-300">
+                       <div className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg inline-block border border-yellow-300">
                            คุณ {myRegistration.name}
                        </div>
                        <p className="text-sm text-gray-500 mt-4">กรุณาติดต่อรับรางวัลที่หน้าเวที</p>
                    </div>
                ) : (
                    <div className="space-y-4">
-                       <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                           <Sparkles className="text-green-600 w-10 h-10" />
+                       <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                           <Sparkles className="text-ny-blue w-10 h-10" />
                        </div>
-                       <h3 className="text-xl font-semibold text-green-700">ลงทะเบียนสำเร็จ!</h3>
+                       <h3 className="text-xl font-semibold text-ny-blue">ลงทะเบียนสำเร็จ!</h3>
                        <div className="bg-slate-100 p-4 rounded-lg text-left">
                            <p className="text-xs text-gray-500 mb-1">ชื่อที่ลงทะเบียน</p>
                            <p className="font-medium text-lg">{myRegistration.name}</p>
@@ -402,7 +402,7 @@ export default function NewYearRaffle() {
           ) : (
             <form onSubmit={handleRegister} className="space-y-4">
               {error && (
-                  <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2">
+                  <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm flex items-center gap-2 border border-red-200">
                       <span>⚠️</span> {error}
                   </div>
               )}
@@ -413,7 +413,7 @@ export default function NewYearRaffle() {
                     <UserPlus className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
                     <input
                         type="text"
-                        className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gemini-green focus:border-transparent outline-none transition"
+                        className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-ny-gold focus:border-transparent outline-none transition"
                         placeholder="เช่น สมชาย ใจดี"
                         value={formData.name}
                         onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -428,7 +428,7 @@ export default function NewYearRaffle() {
                     <Smartphone className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
                     <input
                         type="tel"
-                        className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gemini-green focus:border-transparent outline-none transition"
+                        className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-ny-gold focus:border-transparent outline-none transition"
                         placeholder="08xxxxxxxx"
                         value={formData.phone}
                         onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/\D/g,'')})}
@@ -442,7 +442,7 @@ export default function NewYearRaffle() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gemini-green hover:bg-green-700 text-white font-bold py-3 rounded-lg shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-2"
+                className="w-full bg-ny-blue hover:bg-blue-900 text-white font-bold py-3 rounded-lg shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-2"
               >
                 {loading ? 'กำลังบันทึก...' : 'ลงทะเบียนร่วมสนุก'} 
                 {!loading && <PartyPopper size={18} />}

@@ -10,7 +10,8 @@ export default {
         sans: ['Google Sans', 'sans-serif'],
       },
       colors: {
-        'gemini-green': '#66FF00',
+        'ny-blue': '#0A192F',
+        'ny-gold': '#FFD700',
       }
     },
   },
