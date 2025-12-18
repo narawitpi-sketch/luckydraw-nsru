@@ -225,8 +225,12 @@ export default function NewYearRaffle() {
 
         await Promise.all(updates);
 
+        setWinnerData(null);
+        setShowConfetti(false);
+        setSlotName("พร้อมสุ่ม");
+        setIsAdminMenuOpen(false);
+
         alert("รีเซ็ตสถานะผู้ชนะสำเร็จ!");
-        window.location.reload();
 
     } catch (e: unknown) {
         if (e instanceof Error) {
