@@ -306,7 +306,7 @@ export default function NewYearRaffle() {
                         {/* Initial State (Placeholder) */}
                         {!isSpinning && reelNames.length === 0 && (
                             <div className="flex items-center justify-center h-full w-full text-gray-400">
-                                <div style={{ height: ITEM_HEIGHT }} className="flex items-center justify-center text-5xl font-bold text-gray-800 w-full py-4">พร้อมสุ่ม</div>
+                                <div style={{ height: ITEM_HEIGHT }} className="flex items-center justify-center text-5xl font-bold text-gray-800 w-full py-4 leading-normal">พร้อมสุ่ม</div>
                             </div>
                         )}
 
@@ -316,9 +316,9 @@ export default function NewYearRaffle() {
                                 key={`${p.id}-${i}`} 
                                 style={{ height: ITEM_HEIGHT }}
                                 // เพิ่ม py-4 และเปลี่ยน leading เป็น normal เพื่อป้องกันสระลอยตัด
-                                className="w-full flex items-center justify-center text-center font-bold text-5xl px-4 text-gray-800"
+                                className="w-full flex items-center justify-center text-center font-bold text-5xl px-4 text-gray-800 leading-normal py-4"
                             >
-                                <span className="truncate w-full leading-normal py-4">{p.name}</span>
+                                <span className="truncate w-full">{p.name}</span>
                             </div>
                         ))}
                     </motion.div>
